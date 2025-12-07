@@ -45,9 +45,8 @@ class LoggerFactory:
                 env("GCLOUD_PROJECT"),
                 env("GCP_PROJECT"),
                 env("GOOGLE_APPLICATION_CREDENTIALS"),
-                # Check for Cloud Run metadata server
-                os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount")
-                and env("K_SERVICE"),  # Cloud Run indicator
+                # Check for Cloud Run - K8s service account exists
+                os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount"),
                 # Check for App Engine
                 env("GAE_APPLICATION"),
                 # Check for Compute Engine
@@ -71,14 +70,16 @@ class LoggerFactory:
             logger_type or env("LOGGER_TYPE", env("LOG_CHANNEL", "file"))
         ).lower()
 
-        # Smart fallback: if gcloud is requested but we're not in GCP environment,
-        # and no explicit override, fall back to 'both' for local development
-        if resolved_type == "gcloud" and not cls._is_gcp_environment():
-            app_env = env("APP_ENVIRONMENT", "").lower()
-            if app_env in ["local", "development", "dev"]:
+        # Smart fallback: if gcloud is requested in truly local environment,
+        # fall back to 'both' for local development
+        # Only fallback if APP_ENVIRONMENT explicitly says local/dev AND no GCP indicators
+        app_env = env("APP_ENVIRONMENT", "").lower()
+        if resolved_type == "gcloud" and app_env in ["local", "development"]:
+            is_gcp = cls._is_gcp_environment()
+            if not is_gcp:
                 print(
-                    f"⚠️  Warning: gcloud logger requested in {app_env} "
-                    f"environment. Falling back to 'both' logger."
+                    "⚠️  Warning: gcloud logger requested in local environment. "
+                    "Falling back to 'both' logger."
                 )
                 return "both"
 

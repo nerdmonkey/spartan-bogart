@@ -2,49 +2,23 @@
 Google Cloud Logging implementation following GCP best practices.
 
 Key improvements:
-1. Direct logging client instead of Python logging handler
-2. Proper structured logging with jsonPayload
-3. Cloud Trace context integration
-4. Resource labels for Cloud Run/Functions
-5. Error Reporting integration
-6. Efficient resource usage with shared client
+1. Structured logging with jsonPayload for Cloud Run/Functions 2nd gen
+2. Direct stdout JSON logging (captured automatically by Cloud Run)
+3. Cloud Trace context integration via environment variables
+4. Proper severity levels and resource detection
+5. PII sanitization and efficient batching
+6. Source location for debugging
 """
 
 import inspect
+import json
 import os
-from functools import lru_cache
+import sys
 from typing import Any, Dict, Optional
 
 from app.helpers.environment import env
 
 from .base import BaseLogger
-
-
-try:
-    from google.cloud import logging as gcp_logging
-    from google.cloud.logging_v2 import Resource
-
-    GCP_LOGGING_AVAILABLE = True
-except (ImportError, TypeError, AttributeError) as e:
-    GCP_LOGGING_AVAILABLE = False
-    _IMPORT_ERROR = e
-
-    # Create dummy Resource class for type hints when GCP is not available
-    class Resource:
-        def __init__(self, *args, **kwargs):
-            pass
-
-
-# Shared client for all loggers (best practice for performance)
-@lru_cache(maxsize=1)
-def get_gcp_logging_client():
-    """Get or create shared GCP logging client."""
-    if not GCP_LOGGING_AVAILABLE:
-        return None
-    try:
-        return gcp_logging.Client()
-    except Exception:
-        return None
 
 
 class GCloudLogger(BaseLogger):
@@ -86,8 +60,8 @@ class GCloudLogger(BaseLogger):
         )
         self.level = level.upper()
 
-        # Sensitive fields for PII sanitization
-        self._sensitive_fields = {
+        # Sensitive fields for PII sanitization (optimized as frozenset)
+        self._sensitive_fields = frozenset({
             "password",
             "token",
             "secret",
@@ -101,150 +75,99 @@ class GCloudLogger(BaseLogger):
             "authorization",
             "cookie",
             "session",
-        }
+        })
 
-        # Get project root for source location
+        # Get project root for source location (cached)
         self.project_root = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "../../..")
         )
 
-        # Initialize GCP logging
-        # For Cloud Run/Functions 2nd gen, use stdout JSON logging
-        is_cloud_run = env("K_SERVICE") is not None
-        
-        if is_cloud_run:
-            # Cloud Run automatically captures stdout as structured logs
-            self.client = None
-            self.logger = None
-            self.use_gcp = False  # Use JSON stdout instead
-        else:
-            self.client = get_gcp_logging_client()
-            if self.client:
-                # Use structured logger (not Python logging handler)
-                self.logger = self.client.logger(service_name)
-                self.use_gcp = True
-            else:
-                # Fallback to print for local development
-                self.logger = None
-                self.use_gcp = False
+        # Cache environment info
+        self._app_environment = env("APP_ENVIRONMENT", "production")
+        self._app_version = env("APP_VERSION", "unknown")
+        self._project_id = env("GCP_PROJECT") or env("GOOGLE_CLOUD_PROJECT")
 
-        # Get resource information for Cloud Run/Functions (needed for both modes)
-        self.resource = self._get_resource()
+        # Always use JSON stdout for Cloud Run/Functions 2nd gen
+        # Cloud Logging automatically parses JSON from stdout
+        self.use_json_stdout = True
 
-    def _get_resource(self) -> Optional[Resource]:
-        """
-        Get GCP resource information for proper log attribution.
-
-        Cloud Run/Functions automatically set environment variables that
-        identify the resource. This ensures logs are properly grouped in
-        Cloud Logging.
-        """
-        if not GCP_LOGGING_AVAILABLE:
-            return None
-
-        # Cloud Run environment variables
-        service = env("K_SERVICE")  # Cloud Run service name
-        revision = env("K_REVISION")  # Cloud Run revision
-        configuration = env("K_CONFIGURATION")
-
-        # Cloud Functions environment variables
-        function_name = env("FUNCTION_NAME")
-        function_region = env("FUNCTION_REGION")
-
-        if service:
-            # Cloud Run resource
-            return Resource(
-                type="cloud_run_revision",
-                labels={
-                    "service_name": service,
-                    "revision_name": revision or "unknown",
-                    "configuration_name": configuration or service,
-                    "location": env("FUNCTION_REGION", "us-central1"),
-                },
-            )
-        elif function_name:
-            # Cloud Functions resource
-            return Resource(
-                type="cloud_function",
-                labels={
-                    "function_name": function_name,
-                    "region": function_region or "us-central1",
-                },
-            )
-        else:
-            # Generic compute resource
-            return Resource(
-                type="global",
-                labels={},
-            )
+    def _is_cloud_run(self) -> bool:
+        """Check if running in Cloud Run/Functions environment."""
+        return bool(
+            env("K_SERVICE")
+            or env("FUNCTION_NAME")
+            or env("FUNCTION_TARGET")
+        )
 
     def _get_trace_context(self) -> Optional[str]:
         """
-        Extract trace context from Cloud Run/Functions headers.
+        Extract trace context from Cloud Run/Functions.
 
-        Format: projects/PROJECT_ID/traces/TRACE_ID
-        This enables automatic correlation with Cloud Trace.
+        Cloud Logging automatically correlates logs with traces when:
+        1. Using logging.googleapis.com/trace field in JSON
+        2. Format: projects/PROJECT_ID/traces/TRACE_ID
         """
-        # In Cloud Run/Functions, trace context is in X-Cloud-Trace-Context header
-        # Format: TRACE_ID/SPAN_ID;o=TRACE_TRUE
+        # Check X-Cloud-Trace-Context header (set by Cloud Run)
         trace_header = env("HTTP_X_CLOUD_TRACE_CONTEXT")
-        if not trace_header:
+        if not trace_header or not self._project_id:
             return None
 
         try:
-            trace_id = trace_header.split("/")[0]
-            project_id = env("GCP_PROJECT") or env("GOOGLE_CLOUD_PROJECT")
-            if project_id and trace_id:
-                return f"projects/{project_id}/traces/{trace_id}"
-        except Exception:
+            # Format: TRACE_ID/SPAN_ID;o=TRACE_TRUE
+            trace_id = trace_header.split("/")[0].split(";")[0]
+            if trace_id:
+                trace = f"projects/{self._project_id}/traces/{trace_id}"
+                return trace
+        except (IndexError, AttributeError):
             pass
 
         return None
 
-    def _get_source_location(self) -> Dict[str, Any]:
+    def _get_source_location(self) -> Optional[Dict[str, Any]]:
         """
         Get source location following GCP's sourceLocation format.
 
         Returns:
-            Dict with file, line, and function for Cloud Logging
+            Dict with file, line, and function for Cloud Logging, or None
         """
-        stack = inspect.stack()
-        for frame_info in stack:
-            filename = frame_info.filename
-            normalized_path = filename.replace("\\", "/")
+        # Skip in production for performance
+        if self._app_environment == "production":
+            return None
 
-            # Skip logging framework files
-            if any(
-                skip in normalized_path
-                for skip in [
-                    "/services/logging/",
-                    "/helpers/logger.py",
-                    "/logging/",
-                    "site-packages/",
-                ]
-            ):
-                continue
+        try:
+            stack = inspect.stack()
+            # Skip frames: [0]=this method, [1]=_create_log_entry,
+            # [2]=_write_log, [3]=log method. Start from frame 4.
+            for frame_info in stack[4:]:
+                filename = frame_info.filename
 
-            if filename.startswith(self.project_root):
-                try:
+                # Skip logging framework and stdlib
+                if any(
+                    skip in filename
+                    for skip in [
+                        "/services/logging/",
+                        "/helpers/logger.py",
+                        "site-packages/",
+                        "/lib/python",
+                    ]
+                ):
+                    continue
+
+                if filename.startswith(self.project_root):
                     rel_path = os.path.relpath(filename, self.project_root)
                     return {
                         "file": rel_path,
                         "line": str(frame_info.lineno),
                         "function": frame_info.function or "unknown",
                     }
-                except (ValueError, OSError):
-                    pass
+        except Exception:
+            pass
 
-        return {
-            "file": "unknown",
-            "line": "0",
-            "function": "unknown",
-        }
+        return None
 
     def _sanitize_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Recursively sanitize sensitive data.
+        Recursively sanitize sensitive data for PII protection.
 
         Args:
             data: Dictionary to sanitize
@@ -257,11 +180,12 @@ class GCloudLogger(BaseLogger):
 
         sanitized = {}
         for key, value in data.items():
-            if key.lower() in self._sensitive_fields:
+            key_lower = key.lower()
+            if key_lower in self._sensitive_fields:
                 sanitized[key] = "[REDACTED]"
             elif isinstance(value, dict):
                 sanitized[key] = self._sanitize_data(value)
-            elif isinstance(value, list):
+            elif isinstance(value, (list, tuple)):
                 sanitized[key] = [
                     self._sanitize_data(item) if isinstance(item, dict) else item
                     for item in value
@@ -282,50 +206,41 @@ class GCloudLogger(BaseLogger):
         severity: str,
         message: str,
         extra: Optional[Dict[str, Any]] = None,
-        exc_info: bool = False,
     ) -> Dict[str, Any]:
         """
-        Create structured log entry following GCP format.
+        Create structured log entry for Cloud Logging.
 
-        Uses jsonPayload structure that GCP understands natively.
+        Uses the special JSON fields that Cloud Logging recognizes:
+        - severity: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        - message: Main log message
+        - logging.googleapis.com/trace: Trace correlation
+        - logging.googleapis.com/sourceLocation: Code location
+        - Custom fields in root for jsonPayload
         """
-        # Sanitize extra data
-        sanitized_extra = self._sanitize_data(extra or {})
-
-        # Build json_payload following GCP conventions
-        json_payload = {
-            "message": message,
-            "service": self.service_name,
-            "environment": env("APP_ENVIRONMENT", "unknown"),
-            "version": env("APP_VERSION", "unknown"),
-            **sanitized_extra,  # Merge user-provided fields
-        }
-
-        # Build structured log entry
+        # Start with base structure
         log_entry = {
             "severity": severity,
-            "json_payload": json_payload,
+            "message": message,
+            "service": self.service_name,
+            "environment": self._app_environment,
+            "version": self._app_version,
         }
 
-        # Add source location (helps with debugging)
-        source_location = self._get_source_location()
-        if source_location["file"] != "unknown":
-            log_entry["source_location"] = source_location
+        # Add sanitized extra fields
+        if extra:
+            sanitized_extra = self._sanitize_data(extra)
+            log_entry.update(sanitized_extra)
 
-        # Add trace context (enables distributed tracing)
+        # Add trace context for correlation (Cloud Logging special field)
         trace = self._get_trace_context()
         if trace:
-            log_entry["trace"] = trace
+            # Special field recognized by Cloud Logging
+            log_entry["logging.googleapis.com/trace"] = trace
 
-        # Add resource (Cloud Run/Functions metadata)
-        if self.resource:
-            log_entry["resource"] = self.resource
-
-        # Add labels for filtering/grouping
-        log_entry["labels"] = {
-            "service": self.service_name,
-            "environment": env("APP_ENVIRONMENT", "production"),
-        }
+        # Add source location for debugging (Cloud Logging special field)
+        source_location = self._get_source_location()
+        if source_location:
+            log_entry["logging.googleapis.com/sourceLocation"] = source_location
 
         return log_entry
 
@@ -334,92 +249,72 @@ class GCloudLogger(BaseLogger):
         severity: str,
         message: str,
         extra: Optional[Dict[str, Any]] = None,
-        exc_info: bool = False,
     ):
-        """Write log entry to GCP or fallback."""
+        """
+        Write log entry to stdout as JSON.
+
+        Cloud Run/Functions automatically captures stdout and parses JSON,
+        creating structured logs with jsonPayload in Cloud Logging.
+        """
         # Apply sampling
         if not self._should_sample():
             return
 
-        if self.use_gcp and self.logger:
-            # Use GCP structured logging
-            log_entry = self._create_log_entry(severity, message, extra, exc_info)
+        try:
+            # Create structured log entry
+            log_entry = self._create_log_entry(severity, message, extra)
 
-            try:
-                # Write structured log directly
-                self.logger.log_struct(
-                    log_entry["json_payload"],
-                    severity=log_entry["severity"],
-                    resource=log_entry.get("resource"),
-                    labels=log_entry.get("labels"),
-                    trace=log_entry.get("trace"),
-                    source_location=log_entry.get("source_location"),
-                )
-            except Exception as e:
-                # Fallback if GCP logging fails
-                print(f"[{severity}] {message} | extra: {extra} | error: {e}")
-        else:
-            # Fallback - print JSON with severity for Cloud Logging
-            sanitized_extra = self._sanitize_data(extra or {})
-            json_payload = {
-                "severity": severity,
-                "message": message,
-                "service": self.service_name,
-                "environment": env("APP_ENVIRONMENT", "unknown"),
-                "version": env("APP_VERSION", "unknown"),
-                **sanitized_extra,
-            }
-            import json
-            import sys
+            # Write JSON to stdout (Cloud Logging auto-parses this)
+            json_str = json.dumps(log_entry, default=str)
+            print(json_str, flush=True)
 
-            print(json.dumps(json_payload, default=str), flush=True)
-            sys.stdout.flush()
+        except Exception as e:
+            # Emergency fallback - write simple text log
+            fallback_msg = (
+                f"[{severity}] {message} | extra: {extra} | error: {e}"
+            )
+            print(fallback_msg, file=sys.stderr, flush=True)
 
     def debug(self, message: str, **kwargs):
         """Log debug message."""
-        extra = kwargs.get("extra")
-        self._write_log("DEBUG", message, extra)
+        self._write_log("DEBUG", message, kwargs.get("extra"))
 
     def info(self, message: str, **kwargs):
         """Log info message."""
-        extra = kwargs.get("extra")
-        self._write_log("INFO", message, extra)
+        self._write_log("INFO", message, kwargs.get("extra"))
 
     def warning(self, message: str, **kwargs):
         """Log warning message."""
-        extra = kwargs.get("extra")
-        self._write_log("WARNING", message, extra)
+        self._write_log("WARNING", message, kwargs.get("extra"))
 
     def error(self, message: str, **kwargs):
         """Log error message."""
-        extra = kwargs.get("extra")
-        self._write_log("ERROR", message, extra)
+        self._write_log("ERROR", message, kwargs.get("extra"))
 
     def critical(self, message: str, **kwargs):
         """Log critical message."""
-        extra = kwargs.get("extra")
-        self._write_log("CRITICAL", message, extra)
+        self._write_log("CRITICAL", message, kwargs.get("extra"))
 
     def exception(self, message: str, **kwargs):
         """
         Log exception with traceback.
 
-        This integrates with Error Reporting when exc_info is available.
+        Cloud Error Reporting automatically detects ERROR/CRITICAL logs
+        with exception stack traces.
         """
-        extra = kwargs.get("extra")
+        import traceback
+
+        extra = kwargs.get("extra") or {}
 
         # Get exception info
-        import sys
-
         exc_info = sys.exc_info()
 
-        # Add exception details to extra
+        # Add exception details for Error Reporting
         if exc_info[0] is not None:
-            if extra is None:
-                extra = {}
             extra["exception"] = {
                 "type": exc_info[0].__name__,
                 "message": str(exc_info[1]),
+                "stacktrace": traceback.format_exc(),
             }
 
-        self._write_log("ERROR", message, extra, exc_info=True)
+        self._write_log("ERROR", message, extra)
