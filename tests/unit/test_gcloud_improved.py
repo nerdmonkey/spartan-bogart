@@ -86,6 +86,7 @@ def test_gcloud_logger_sampling(monkeypatch, capsys):
 
 def test_gcloud_logger_cloud_run_detection(monkeypatch, capsys):
     """Test that Cloud Run environment is detected."""
+
     # Mock env() to return Cloud Run environment values
     def mock_env(key, default=None):
         env_values = {
@@ -138,6 +139,7 @@ def test_gcloud_logger_exception_with_context(monkeypatch, capsys):
 
 def test_gcloud_logger_source_location(monkeypatch, capsys):
     """Test that source location is captured in non-production."""
+
     # Mock env for non-production
     def mock_env(key, default=None):
         env_values = {

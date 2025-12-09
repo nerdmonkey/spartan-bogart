@@ -61,21 +61,23 @@ class GCloudLogger(BaseLogger):
         self.level = level.upper()
 
         # Sensitive fields for PII sanitization (optimized as frozenset)
-        self._sensitive_fields = frozenset({
-            "password",
-            "token",
-            "secret",
-            "key",
-            "auth",
-            "credentials",
-            "api_key",
-            "access_token",
-            "refresh_token",
-            "private_key",
-            "authorization",
-            "cookie",
-            "session",
-        })
+        self._sensitive_fields = frozenset(
+            {
+                "password",
+                "token",
+                "secret",
+                "key",
+                "auth",
+                "credentials",
+                "api_key",
+                "access_token",
+                "refresh_token",
+                "private_key",
+                "authorization",
+                "cookie",
+                "session",
+            }
+        )
 
         # Get project root for source location (cached)
         self.project_root = os.path.abspath(
@@ -93,11 +95,7 @@ class GCloudLogger(BaseLogger):
 
     def _is_cloud_run(self) -> bool:
         """Check if running in Cloud Run/Functions environment."""
-        return bool(
-            env("K_SERVICE")
-            or env("FUNCTION_NAME")
-            or env("FUNCTION_TARGET")
-        )
+        return bool(env("K_SERVICE") or env("FUNCTION_NAME") or env("FUNCTION_TARGET"))
 
     def _get_trace_context(self) -> Optional[str]:
         """
@@ -270,9 +268,7 @@ class GCloudLogger(BaseLogger):
 
         except Exception as e:
             # Emergency fallback - write simple text log
-            fallback_msg = (
-                f"[{severity}] {message} | extra: {extra} | error: {e}"
-            )
+            fallback_msg = f"[{severity}] {message} | extra: {extra} | error: {e}"
             print(fallback_msg, file=sys.stderr, flush=True)
 
     def debug(self, message: str, **kwargs):

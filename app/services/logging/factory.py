@@ -70,16 +70,17 @@ class LoggerFactory:
             logger_type or env("LOGGER_TYPE", env("LOG_CHANNEL", "file"))
         ).lower()
 
-        # Smart fallback: if gcloud is requested in truly local environment,
-        # fall back to 'both' for local development
-        # Only fallback if APP_ENVIRONMENT explicitly says local/dev AND no GCP indicators
+        # Smart fallback: if gcloud is requested in truly local
+        # environment, fall back to 'both' for local development
+        # Only fallback if APP_ENVIRONMENT explicitly says local/dev
+        # AND no GCP indicators
         app_env = env("APP_ENVIRONMENT", "").lower()
         if resolved_type == "gcloud" and app_env in ["local", "development"]:
             is_gcp = cls._is_gcp_environment()
             if not is_gcp:
                 print(
-                    "⚠️  Warning: gcloud logger requested in local environment. "
-                    "Falling back to 'both' logger."
+                    "⚠️  Warning: gcloud logger requested in local "
+                    "environment. Falling back to 'both' logger."
                 )
                 return "both"
 

@@ -32,12 +32,14 @@ def test_tracer_factory_selects_gcloud_when_gcp_env(monkeypatch):
 
     mod_gcloud = importlib.import_module("app.services.tracing.gcloud")
     monkeypatch.setattr(mod_gcloud, "GCP_TRACING_AVAILABLE", True)
-    
+
     mock_trace = MagicMock()
     mock_trace.get_tracer = MagicMock()
     mock_trace.set_tracer_provider = MagicMock()
-    
-    monkeypatch.setattr(mod_gcloud, "CloudTraceSpanExporter", MagicMock(), raising=False)
+
+    monkeypatch.setattr(
+        mod_gcloud, "CloudTraceSpanExporter", MagicMock(), raising=False
+    )
     monkeypatch.setattr(mod_gcloud, "TracerProvider", MagicMock(), raising=False)
     monkeypatch.setattr(mod_gcloud, "BatchSpanProcessor", MagicMock(), raising=False)
     monkeypatch.setattr(mod_gcloud, "ResourceAttributes", MagicMock(), raising=False)
