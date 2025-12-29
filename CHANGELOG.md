@@ -1,32 +1,63 @@
+
 # Changelog
 
 All notable changes to `spartan` will be documented in this file.
 
 ## [Unreleased]
 ### Added
-- Added `set_level` method to `StandardLoggerService` for dynamic log level changes.
-- Added `get_logger` method to `StandardLoggerService` for accessing the underlying logger instance.
-- Improved docstrings and maintainability in `StandardLoggerService`.
+- Enhance configuration and infrastructure setup for Spartan Framework.
+- Add comprehensive unit tests for code formatting and linting validation.
+- Add comprehensive tests for parameter management and secret resolution.
+- Add unit tests for Parameter Manager requests, responses, and service.
+- Add comprehensive logging tests for Secret Manager service operations.
+- Add comprehensive property and unit tests for models.
+- Add Cloud Tasks and Secret Manager services with comprehensive request/response models.
+- Add Dockerfile and .dockerignore for containerized deployment.
 
 ### Changed
-- Refactored `StandardLoggerService` to better align with helpers.logger structure and Python logging best practices.
+- Align code formatting and update dependencies for code standards compliance.
+- Refactor code structure for improved readability and maintainability; removed redundant code blocks and optimized function calls to enhance performance; updated documentation to reflect changes and ensure clarity for future development.
+- Refactor test cases for improved readability and consistency.
+- Clean up whitespace, remove property tests, and optimize pytest configuration.
 
-## [2025-06-08]
-### Added
-- Enhanced logging methods with docstrings for improved clarity and documentation. ([44b92ff])
-- Implemented `Secret`, `AppSettings`, `DatabaseSettings`, and `LogSettings` classes for loading secrets and dynamic configuration. ([620c738])
+### Fixed
+- Update archive file inclusion to add pyproject.toml and poetry.lock; retain CHANGELOG.md.
+- Remove CHANGELOG.md from .gcloudignore.
+- Reorganize entries for clarity and consistency in .dockerignore; ensure all relevant file types are excluded.
+- Correct indentation in metadata label entries for consistency in Dockerfile.
 
-### Changed
-- Updated boto, boto3, botocore, and s3transfer versions for improved compatibility and features. ([ea68512])
-- Updated `test_log_levels` to use `stacklevel` parameter for improved logging accuracy. ([6fae1f7])
-- Enhanced logging functionality: added `stacklevel` parameter to log methods for improved traceability and updated response body in main function to reflect correct service name. ([77c91e3])
-- Removed Python version constraints from requirements.txt for improved compatibility. ([f42fd9e])
-- Refactored environment variable function and updated logger initialization: formatted the env function parameters for better readability and changed logger name in inference handler to match the service. ([77e7bf7])
-- Updated environment variables and logger configuration: changed LOG_FILE to LOG_DIR in .env.example, and modified FileLogger to use LOG_DIR from environment settings. ([fbd54e4])
-- Refactored logger imports and formatting: streamlined import statements, adjusted timestamp handling in FileLogger, and improved code readability in various modules. ([e9755a5])
-- Enhanced logging functionality: added extra data handling in BothLogger and StreamLogger, updated inference handler logging messages, and improved error handling in main function. ([ef73954])
-- Refactored logging setup: removed environment parameter, implemented BothLogger and StreamLogger, and replaced predict handler with inference handler. ([de7155c])
+### Refactored
+- Improve code readability by reformatting method signatures and exception handling; align with code standards in secret-manager.
+- Enhance exception mapping by consolidating logic into grouped methods in parameter-manager.
+- Simplify exception mapping by consolidating logic into dedicated methods in parameter-manager.
+- Improve string formatting for parameter paths in parameter-manager.
+- Enhance service documentation, improve credential handling, and restructure initialization logic in parameter-manager.
+- Clean up whitespace and improve code readability in SecretManagerService.
+- Enhance service documentation, improve credential handling, and restructure initialization logic in parameter-manager.
+- Remove unused import of MockCloudFunctionsContext in local testing entry point.
 
-## [2025-06-09]
-### Added
-- Add unit tests for BothLogger and StreamLogger with mock implementations. ([a9d0a3f] by Sydel Palinlin)
+### Docs
+- Mark final checkpoint task as complete in parameter-manager documentation.
+
+### Test
+- Add comprehensive initialization and coverage tests for parameter-manager.
+- Add comprehensive property tests for version management preservation and state management in secret-manager.
+- Add comprehensive property and unit tests for models in secret-manager.
+- Simplify version state management property test in secret-manager.
+
+### Feat
+- Add utility methods and format conversion helpers in parameter-manager.
+- Add connection pooling and batch operation statistics in parameter-manager.
+- Enhance error handling and logging in ParameterManagerService.
+- Implement version management methods with custom version naming in parameter-manager.
+- Implement comprehensive logging and observability with operation timing in secret-manager.
+- Add comprehensive error handling with exception mapping and property tests in secret-manager.
+- Implement secret listing and deletion methods with comprehensive error handling; add property test for secret listing completeness in secret-manager.
+- Implement version management methods with comprehensive error handling and logging; add property tests for version management preservation and state management in secret-manager.
+- Implement core SecretManagerService class with initialization, secret creation, and retrieval methods; add comprehensive property tests for validation.
+
+### Perf
+- Add connection pooling and batch operation statistics in parameter-manager.
+
+### Chore
+- Align code formatting and update dependencies for code standards compliance.

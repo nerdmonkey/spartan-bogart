@@ -1,4 +1,6 @@
 import json
+import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -9,17 +11,20 @@ class DummyContext:
     pass
 
 
-def cleanup_trace_file(tracer):
-    if tracer.trace_file.exists():
-        tracer.trace_file.unlink()
-
-
 @pytest.fixture
 def tracer():
+    # Create a unique trace file for each test
+    with tempfile.NamedTemporaryFile(suffix=".trace", delete=False) as tmp:
+        trace_file = Path(tmp.name)
+
     t = LocalTracer("test_service")
-    cleanup_trace_file(t)
+    t.trace_file = trace_file  # Override with unique file
+
     yield t
-    cleanup_trace_file(t)
+
+    # Clean up
+    if trace_file.exists():
+        trace_file.unlink()
 
 
 def test_write_trace(tracer):

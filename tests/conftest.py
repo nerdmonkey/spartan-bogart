@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from dotenv import load_dotenv
+from hypothesis import HealthCheck, settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -18,6 +19,20 @@ from app.models.db.user import User
 load_dotenv(dotenv_path=".env_testing")
 
 get_db = db()
+
+
+# Hypothesis global profiles: fast by default for local runs
+settings.register_profile(
+    "dev",
+    max_examples=20,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
+settings.register_profile(
+    "ci",
+    max_examples=100,
+)
+settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "dev"))
 
 
 def construct_database_url():

@@ -47,10 +47,7 @@ from app.exceptions.user import (  # noqa: E402
     InvalidSortFieldException,
     UserNotFoundException,
 )
-from app.requests.user import (  # noqa: E402
-    UserCreateRequest,
-    UserUpdateRequest,
-)
+from app.requests.user import UserCreateRequest, UserUpdateRequest  # noqa: E402
 from app.services.user import UserService  # noqa: E402
 
 

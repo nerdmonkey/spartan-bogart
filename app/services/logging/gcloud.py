@@ -151,8 +151,15 @@ class GCloudLogger(BaseLogger):
                 ):
                     continue
 
-                if filename.startswith(self.project_root):
-                    rel_path = os.path.relpath(filename, self.project_root)
+                # For project files or test files, return source location
+                if filename.startswith(
+                    self.project_root
+                ) or "test_" in os.path.basename(filename):
+                    rel_path = (
+                        os.path.relpath(filename, self.project_root)
+                        if filename.startswith(self.project_root)
+                        else os.path.basename(filename)
+                    )
                     return {
                         "file": rel_path,
                         "line": str(frame_info.lineno),

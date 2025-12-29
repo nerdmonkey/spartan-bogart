@@ -28,12 +28,14 @@ pip-log.txt
 .cache/
 nosetests.xml
 .pytest_cache/
+.ruff_cache/
 
 # Exclude documentation and tests
 notebooks/
 tests/
 docs/
-CHANGELOG.md
+examples/
+README.md
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md
 
@@ -46,3 +48,8 @@ tinker.py
 tox.ini
 pytest.ini
 requirements-dev.txt
+
+.*
+*.yml
+*.yaml
+Dockerfile

@@ -7,7 +7,7 @@ from app.helpers.environment import env
 from app.helpers.logger import get_logger
 
 
-logger = get_logger("database")
+logger = get_logger("spartan.database")
 
 
 def _build_database_url() -> str:
