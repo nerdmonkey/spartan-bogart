@@ -16,7 +16,8 @@ class MockLambdaContext:
 
     Methods:
         get_remaining_time_in_millis() -> int:
-            Returns the remaining time in milliseconds before the Lambda function times out.
+            Returns the remaining time in milliseconds before the Lambda
+            function times out.
     """
 
     def __init__(self):
@@ -39,7 +40,8 @@ class MockLambdaEvent:
     A mock class to simulate an AWS Lambda event.
 
     Attributes:
-        event (dict): A dictionary representing the mock event data with predefined key-value pairs.
+        event (dict): A dictionary representing the mock event data with
+            predefined key-value pairs.
     """
 
     def __init__(self):

@@ -10,7 +10,8 @@ from .base import BaseLogger
 
 
 class LoggerFactory:
-    """Factory class for creating different types of loggers with lazy loading support."""
+    """Factory class for creating different types of loggers with lazy
+    loading support."""
 
     # Cache for lazy-loaded logger classes
     _lazy_logger_cache: Dict[str, Type[BaseLogger]] = {}

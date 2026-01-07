@@ -82,7 +82,8 @@ class CloudWatchLogger(BaseLogger):
         stack = inspect.stack()
         for frame_info in stack:
             filename = frame_info.filename
-            # Only consider frames inside the project root and outside the logging-related directories
+            # Only consider frames inside the project root and outside
+            # the logging-related directories
             normalized_path = filename.replace("\\", "/")
             rel_normalized = normalized_path.replace(
                 self.project_root.replace("\\", "/"), ""

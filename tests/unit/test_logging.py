@@ -57,8 +57,14 @@ def test_stream_logger_format_and_fallback(monkeypatch):
 
 
 def test_prettify_extra_and_bothlogger_delegation(monkeypatch):
-    # Test _prettify_extra behavior directly
-    from app.services.logging.both import BothLogger, _prettify_extra
+    """Test _prettify_extra behavior and BothLogger delegation."""
+    _test_prettify_extra()
+    _test_bothlogger_delegation(monkeypatch)
+
+
+def _test_prettify_extra():
+    """Test _prettify_extra behavior directly."""
+    from app.services.logging.both import _prettify_extra
 
     extra = {"password": "s", "name": "bob"}
     pretty = _prettify_extra(extra)
@@ -66,8 +72,25 @@ def test_prettify_extra_and_bothlogger_delegation(monkeypatch):
     assert "[REDACTED]" in pretty
     assert "bob" in pretty
 
-    # Now test BothLogger delegates to file and stream loggers
+
+def _test_bothlogger_delegation(monkeypatch):
+    """Test BothLogger delegates to file and stream loggers."""
+    from app.services.logging.both import BothLogger
+
     calls = {"file": [], "stream": []}
+    fake_file = _create_fake_file_logger(calls)
+    fake_stream = _create_fake_stream_logger(calls)
+
+    _patch_logger_classes(monkeypatch, fake_file, fake_stream)
+
+    b = BothLogger(service_name="svc", level="INFO")
+    b.info("hello", extra={"password": "x", "foo": "bar"})
+
+    _assert_delegation_worked(calls)
+
+
+def _create_fake_file_logger(calls):
+    """Create fake file logger class."""
 
     class FakeFile:
         def __init__(self, *args, **kwargs):
@@ -91,6 +114,12 @@ def test_prettify_extra_and_bothlogger_delegation(monkeypatch):
         def exception(self, message, *args, **kwargs):
             calls["file"].append(("exception", message, args, kwargs))
 
+    return FakeFile
+
+
+def _create_fake_stream_logger(calls):
+    """Create fake stream logger class."""
+
     class FakeStream:
         def __init__(self, *args, **kwargs):
             pass
@@ -113,17 +142,19 @@ def test_prettify_extra_and_bothlogger_delegation(monkeypatch):
         def exception(self, message, *args, **kwargs):
             calls["stream"].append(("exception", message))
 
-    # Monkeypatch the concrete logger classes in the both module
+    return FakeStream
+
+
+def _patch_logger_classes(monkeypatch, fake_file, fake_stream):
+    """Patch the concrete logger classes in the both module."""
     import app.services.logging.both as both_mod
 
-    monkeypatch.setattr(both_mod, "FileLogger", FakeFile)
-    monkeypatch.setattr(both_mod, "StreamLogger", FakeStream)
+    monkeypatch.setattr(both_mod, "FileLogger", fake_file)
+    monkeypatch.setattr(both_mod, "StreamLogger", fake_stream)
 
-    b = BothLogger(service_name="svc", level="INFO")
 
-    # Call info with extra containing sensitive field
-    b.info("hello", extra={"password": "x", "foo": "bar"})
-
+def _assert_delegation_worked(calls):
+    """Assert that delegation to both loggers worked correctly."""
     # File logger should have received an info call with kwargs containing stacklevel
     assert any(c[0] == "info" for c in calls["file"])
     # Stream logger should have an info call where message includes prettified extra

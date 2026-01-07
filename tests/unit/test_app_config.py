@@ -6,11 +6,12 @@ from app.helpers.environment import EnvironmentVariables, env
 
 
 def test_settings_loads_env_vars():
-    """
-    Test that the EnvironmentVariables class correctly loads configuration from environment variables.
+    """Test that the EnvironmentVariables class correctly loads
+    configuration from environment variables.
 
-    This test sets environment variables and then creates an EnvironmentVariables instance to
-    verify that the environment variables are correctly loaded and assigned.
+    This test sets environment variables and then creates an
+    EnvironmentVariables instance to verify that the environment variables
+    are correctly loaded and assigned.
     """
     # Set required environment variables
     test_env_vars = {
@@ -79,11 +80,12 @@ def test_settings_loads_env_vars():
 
 
 def test_get_settings_cached():
-    """
-    Test that the env function uses @lru_cache for returning EnvironmentVariables.
+    """Test that the env function uses @lru_cache for returning
+    EnvironmentVariables.
 
     This test verifies that when env() is called multiple times, it returns
-    the same instance of EnvironmentVariables, indicating that the function's result is being cached.
+    the same instance of EnvironmentVariables, indicating that the function's
+    result is being cached.
     """
     # Clear the cache first
     env.cache_clear()
@@ -125,8 +127,8 @@ def test_get_settings_cached():
 
 
 def test_env_function_with_variable_name():
-    """
-    Test that the env function returns specific environment variable values when var_name is provided.
+    """Test that the env function returns specific environment variable
+    values when var_name is provided.
     """
     test_env_vars = {
         "APP_NAME": "test-app",
@@ -270,8 +272,8 @@ def test_optional_fields_defaults():
 
 
 def test_storage_configuration():
-    """
-    Test that storage-related environment variables are correctly loaded and handled.
+    """Test that storage-related environment variables are correctly
+    loaded and handled.
     """
     test_env_vars = {
         "APP_NAME": "test-app",
@@ -308,8 +310,8 @@ def test_storage_configuration():
 
 
 def test_storage_defaults_when_not_provided(mocker):
-    """
-    Test that storage fields use correct defaults when not provided in environment.
+    """Test that storage fields use correct defaults when not provided
+    in environment.
     """
     test_env_vars = {
         "APP_NAME": "test-app",

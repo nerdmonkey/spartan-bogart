@@ -27,7 +27,10 @@ def _build_database_url() -> str:
     if db_type not in urls:
         raise ValueError(f"Unsupported database type: {db_type}")
 
-    base_url = f"{urls[db_type]}://{settings.DB_USERNAME}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+    base_url = (
+        f"{urls[db_type]}://{settings.DB_USERNAME}:{settings.DB_PASSWORD}"
+        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+    )
 
     return f"{base_url}?driver={settings.DB_DRIVER}" if db_type == "mssql" else base_url
 

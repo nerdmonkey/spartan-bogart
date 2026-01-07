@@ -9,7 +9,7 @@ from app.exceptions.user import (
     InvalidSortFieldException,
     UserNotFoundException,
 )
-from app.models.user import User
+from app.models.db.user import User
 from app.requests.user import UserCreateRequest, UserUpdateRequest
 from app.responses.user import (
     UserCreateResponse,

@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from functools import lru_cache, wraps
 from typing import Any, Dict, Optional
 
-from app.services.tracing.factory import get_tracer
+from app.services.tracing.factory import get_tracer as _get_tracer
 
 
 class TracerService:
@@ -12,7 +12,7 @@ class TracerService:
     @lru_cache(maxsize=1)
     def get_tracer():
         """Get cached tracer instance."""
-        return get_tracer()
+        return _get_tracer()
 
     @staticmethod
     def trace_function(name: Optional[str] = None):

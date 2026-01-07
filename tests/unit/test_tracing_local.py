@@ -21,7 +21,7 @@ def cleanup_trace_file(tracer):
 def tracer():
     t = LocalTracer("test_service")
     # Use a unique temporary file for each test to avoid conflicts
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.trace') as tmp:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".trace") as tmp:
         t.trace_file = Path(tmp.name)
     cleanup_trace_file(t)
     yield t

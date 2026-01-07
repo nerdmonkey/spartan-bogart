@@ -2,7 +2,8 @@ import json
 
 
 def test_file_logger_writes_json(tmp_path, monkeypatch):
-    """FileLogger should create the log file and write JSON entries with PII redaction."""
+    """FileLogger should create the log file and write JSON entries with
+    PII redaction."""
     from app.services.logging.file import FileLogger
 
     # Make env() deterministic inside the file logger module
@@ -29,7 +30,7 @@ def test_file_logger_writes_json(tmp_path, monkeypatch):
     assert log_file.exists(), "Expected log file to be created"
 
     text = log_file.read_text()
-    lines = [l for l in text.splitlines() if l.strip()]
+    lines = [line for line in text.splitlines() if line.strip()]
     assert lines, "Expected at least one log line"
 
     entry = json.loads(lines[-1])
@@ -56,8 +57,8 @@ def test_file_logger_sampling_prevents_writes(tmp_path, monkeypatch):
     fl = FileLogger(
         service_name="svc", level="INFO", log_dir=str(tmp_path), sample_rate=0.0
     )
-    # Note: FileLogger.__init__ treats falsy sample_rate specially, so set explicitly on the
-    # instance to ensure sampling is disabled for the test.
+    # Note: FileLogger.__init__ treats falsy sample_rate specially, so set
+    # explicitly on the instance to ensure sampling is disabled for the test.
     fl.sample_rate = 0.0
     fl.info("silent", extra={"a": "b"})
 
@@ -71,11 +72,12 @@ def test_file_logger_sampling_prevents_writes(tmp_path, monkeypatch):
     # Either file doesn't exist or is empty (no log lines)
     if log_file.exists():
         text = log_file.read_text()
-        assert not [l for l in text.splitlines() if l.strip()]
+        assert not [line for line in text.splitlines() if line.strip()]
 
 
 def test_file_logger_exception_includes_exception(tmp_path, monkeypatch):
-    """Exception logging should include an "exception" field and redact sensitive fields."""
+    """Exception logging should include an "exception" field and redact
+    sensitive fields."""
     from app.services.logging.file import FileLogger
 
     monkeypatch.setattr(
@@ -90,8 +92,9 @@ def test_file_logger_exception_includes_exception(tmp_path, monkeypatch):
     try:
         raise RuntimeError("boom")
     except Exception:
-        # Pass token as a top-level kwarg so the JsonFormatter promotes it to the record
-        # attributes (the exception() helper wraps kwargs into extra=... otherwise).
+        # Pass token as a top-level kwarg so the JsonFormatter promotes it
+        # to the record attributes (the exception() helper wraps kwargs into
+        # extra=... otherwise).
         fl.exception("caught", token="abc")
         for h in fl.logger.handlers:
             try:
@@ -101,7 +104,7 @@ def test_file_logger_exception_includes_exception(tmp_path, monkeypatch):
 
     log_file = tmp_path / "svc.log"
     assert log_file.exists()
-    lines = [l for l in log_file.read_text().splitlines() if l.strip()]
+    lines = [line for line in log_file.read_text().splitlines() if line.strip()]
     assert lines
     entry = json.loads(lines[-1])
     assert "exception" in entry
@@ -150,7 +153,8 @@ def test_file_logger_rotation(tmp_path, monkeypatch):
 
 
 def test_file_logger_json_schema_and_pii_cases(tmp_path, monkeypatch):
-    """Verify timestamp parseable, location present, and PII redaction is case-insensitive and applies to top-level attrs."""
+    """Verify timestamp parseable, location present, and PII redaction is
+    case-insensitive and applies to top-level attrs."""
     from datetime import datetime
 
     from app.services.logging.file import FileLogger
@@ -165,7 +169,8 @@ def test_file_logger_json_schema_and_pii_cases(tmp_path, monkeypatch):
     )
 
     # password as mixed-case in extra should be redacted
-    # Put api_key inside extra because FileLogger._log only forwards `extra` to the logging call
+    # Put api_key inside extra because FileLogger._log only forwards
+    # `extra` to the logging call
     fl.info("hi", extra={"Password": "mix", "nested": {"token": "x"}, "api_key": "zzz"})
     for h in fl.logger.handlers:
         try:
@@ -175,7 +180,7 @@ def test_file_logger_json_schema_and_pii_cases(tmp_path, monkeypatch):
 
     log_file = tmp_path / "svc.log"
     assert log_file.exists()
-    lines = [l for l in log_file.read_text().splitlines() if l.strip()]
+    lines = [line for line in log_file.read_text().splitlines() if line.strip()]
     entry = json.loads(lines[-1])
 
     # Timestamp should parse as ISO format
@@ -192,5 +197,6 @@ def test_file_logger_json_schema_and_pii_cases(tmp_path, monkeypatch):
     # Top-level kwarg api_key should be redacted
     assert entry.get("api_key") == "[REDACTED]"
 
-    # Nested sensitive field inside dict is not automatically redacted by current implementation
+    # Nested sensitive field inside dict is not automatically redacted
+    # by current implementation
     assert entry.get("nested") == {"token": "x"}

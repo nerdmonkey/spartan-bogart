@@ -43,7 +43,10 @@ class StreamLogger(BaseLogger):
         color = LEVEL_COLORS.get(level, "")
         reset = RESET
         extra_str = f" | extra: {extra}" if extra else ""
-        return f"{color}[{timestamp}] [{level}] {self.service_name}:{reset} {message}{extra_str}"
+        return (
+            f"{color}[{timestamp}] [{level}] {self.service_name}:{reset} "
+            f"{message}{extra_str}"
+        )
 
     def log(self, message: str, level: str = None, **kwargs):
         level = (level or self.level).upper()

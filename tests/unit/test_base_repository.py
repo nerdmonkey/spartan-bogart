@@ -1,5 +1,7 @@
+import importlib.util
 import os
 from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -11,10 +13,6 @@ os.environ.setdefault("APP_ENVIRONMENT", "test")
 
 # Import BaseRepository directly from its source file to avoid executing
 # `app.repositories.__init__` which imports many repository modules.
-import importlib.util
-from pathlib import Path
-
-
 base_path = Path(__file__).resolve().parents[2] / "app" / "repositories" / "base.py"
 spec = importlib.util.spec_from_file_location("app_repositories_base", str(base_path))
 base_mod = importlib.util.module_from_spec(spec)
@@ -214,7 +212,8 @@ def test_batch_get_by_ids_batches_and_handles_parse_errors(mocker):
     # Create 150 ids to force batching (100 + 50)
     ids = [str(i) for i in range(1, 151)]
 
-    # Prepare responses per batch: first batch returns two valid items, second returns one bad and one valid
+    # Prepare responses per batch: first batch returns two valid items,
+    # second returns one bad and one valid
     def batch_get_item(RequestItems):
         keys = RequestItems.get("tbl", {}).get("Keys", [])
         # decide which batch based on key content
@@ -396,7 +395,7 @@ def test_list_by_entity_type_include_deleted_true_no_deletion_filter(mocker):
     client = SimpleNamespace(query=query)
     repo = make_repo_with_client(client)
 
-    out = repo.list_by_entity_type(
+    repo.list_by_entity_type(
         limit=2, search=None, sort_order="desc", include_deleted=True
     )
 

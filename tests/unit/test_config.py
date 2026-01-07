@@ -5,7 +5,8 @@ import pytest
 
 
 def make_env(mapping):
-    """Return an env(...) replacement that supports var_name or no-arg calls."""
+    """Return an env(...) replacement that supports var_name or no-arg
+    calls."""
 
     def _env(var_name=None, default=None):
         if var_name is None:
@@ -54,7 +55,8 @@ def test_database_settings_port_conversion_and_defaults(monkeypatch):
     ds = db_mod.DatabaseSettings()
 
     assert ds.type == "postgres"
-    # Note: DatabaseSettings reads env() directly, which returns strings here — expect '5432'
+    # Note: DatabaseSettings reads env() directly, which returns strings
+    # here — expect '5432'
     assert ds.port == "5432"
     assert ds.name == "spartan"
 
@@ -85,7 +87,8 @@ def test_handlers_singleton_and_handler_configs(monkeypatch):
 
 
 def test_filehandler_pydantic_serialization_and_validation(monkeypatch):
-    """Ensure json_deserializer attribute exists but is excluded from model dumps and invalid values raise."""
+    """Ensure json_deserializer attribute exists but is excluded from
+    model dumps and invalid values raise."""
 
     mapping = {"APP_NAME": "appx", "LOG_LEVEL": "WARN", "LOG_FILE": "/tmp/appx.log"}
     monkeypatch.setattr("app.helpers.environment.env", make_env(mapping))

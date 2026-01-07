@@ -23,12 +23,8 @@ def upgrade() -> None:
         sa.Column("username", sa.String(50), unique=True, index=True),
         sa.Column("email", sa.String(50), unique=True, index=True),
         sa.Column("password", sa.String(100)),
-        sa.Column(
-            "created_at", sa.DateTime, default=sa.func.now(), nullable=False
-        ),
-        sa.Column(
-            "updated_at", sa.DateTime, default=sa.func.now(), nullable=False
-        ),
+        sa.Column("created_at", sa.DateTime, default=sa.func.now(), nullable=False),
+        sa.Column("updated_at", sa.DateTime, default=sa.func.now(), nullable=False),
     )
 
 

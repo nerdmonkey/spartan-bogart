@@ -32,10 +32,16 @@ def construct_database_url():
         db_password = os.getenv("DB_PASSWORD", "password")
 
         if db_type == "psql":
-            return f"postgresql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
+            return (
+                f"postgresql://{db_username}:{db_password}@{db_host}:"
+                f"{db_port}/{db_name}"
+            )
 
         elif db_type == "mysql":
-            return f"mysql+pymysql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}"
+            return (
+                f"mysql+pymysql://{db_username}:{db_password}@{db_host}:"
+                f"{db_port}/{db_name}"
+            )
         else:
             raise ValueError(f"Unsupported database type: {db_type}")
 

@@ -1,3 +1,18 @@
+import sys
+import types
+from datetime import datetime
+
+import pytest
+
+from app.exceptions.user import (
+    DuplicateUserError,
+    InvalidSortFieldException,
+    UserNotFoundException,
+)
+from app.requests.user import UserCreateRequest, UserUpdateRequest
+from app.services.user import UserService
+
+
 class Field:
     def in_(self, values):
         return ("in", self.name, values)
@@ -7,13 +22,6 @@ class Field:
 
     def __eq__(self, other):
         return (self.name, other)
-
-
-# Patch app.models.user before importing UserService
-import types
-from datetime import datetime
-
-import pytest
 
 
 class FakeUser:
@@ -35,23 +43,10 @@ class FakeUser:
         self.updated_at = updated_at or datetime(2024, 1, 1, 0, 0, 0)
 
 
+# Patch app.models.user before importing UserService
 fake_user_mod = types.ModuleType("app.models.user")
 fake_user_mod.User = FakeUser
-import sys
-
-
 sys.modules["app.models.user"] = fake_user_mod
-
-from app.exceptions.user import (
-    DuplicateUserError,
-    InvalidSortFieldException,
-    UserNotFoundException,
-)
-from app.requests.user import UserCreateRequest, UserUpdateRequest
-from app.services.user import UserService
-
-
-## Removed duplicate FakeUser definition; only the version with class attributes is used
 
 
 class FakeQuery:

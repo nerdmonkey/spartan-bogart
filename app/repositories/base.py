@@ -198,81 +198,83 @@ class BaseRepository(ABC):
         sort_order: str = "desc",
         include_deleted: bool = False,
     ) -> Dict[str, Any]:
-        """
-        List entities by type using GSI.
-
-        Args:
-            limit: Maximum number of items to return
-            last_evaluated_key: DynamoDB pagination token
-            search: Search term for filtering
-            sort_order: Sort order (asc/desc)
-            include_deleted: Whether to include soft-deleted items
-
-        Returns:
-            Dictionary with items and pagination info
-        """
+        """List entities by type using GSI."""
         try:
-            # Build query parameters for EntityType GSI
-            query_params = {
-                "TableName": self.table_name,
-                "IndexName": "GSI2",
-                "KeyConditionExpression": "EntityType = :entity_type",
-                "ExpressionAttributeValues": {
-                    ":entity_type": {"S": self.get_entity_type()},
-                },
-                "Limit": min(limit * 3, 100),  # Scan more to handle filtering
-                "ScanIndexForward": sort_order.lower() == "asc",
-            }
+            query_params = self._build_query_params(
+                limit, sort_order, include_deleted, last_evaluated_key, search
+            )
 
-            # Add soft deletion filter
-            if not include_deleted:
-                query_params["FilterExpression"] = (
-                    "(attribute_not_exists(DeletedAt) OR DeletedAt = :null_str)"
-                )
-                query_params["ExpressionAttributeValues"][":null_str"] = {"S": "NULL"}
-
-            # Add pagination token if provided
-            if last_evaluated_key:
-                query_params["ExclusiveStartKey"] = last_evaluated_key
-
-            # Add search filter if provided
-            if search:
-                filter_expr = query_params.get("FilterExpression", "")
-                if filter_expr:
-                    filter_expr += " AND "
-                filter_expr += "contains(#name, :search)"
-                query_params["FilterExpression"] = filter_expr
-                if "ExpressionAttributeNames" not in query_params:
-                    query_params["ExpressionAttributeNames"] = {}
-                query_params["ExpressionAttributeNames"]["#name"] = "Name"
-                query_params["ExpressionAttributeValues"][":search"] = {"S": search}
-
-            logger.info(f"Query params: {query_params}")
             response = self.dynamodb.query(**query_params)
             logger.info(f"Query response - Count: {response.get('Count', 0)}")
 
-            # Convert items to models
-            model_class = self.get_model_class()
-            entities = []
-            for item in response.get("Items", []):
-                try:
-                    entity = model_class.from_ddb_item(item)
-                    entities.append(entity)
-                    if len(entities) >= limit:
-                        break
-                except Exception as e:
-                    logger.warning(f"Skipping invalid record: {e}")
-                    continue
-
-            return {
-                "items": entities,
-                "last_evaluated_key": response.get("LastEvaluatedKey"),
-                "count": len(entities),
-            }
+            return self._process_query_response(response, limit)
 
         except Exception as e:
             logger.error(f"Failed to list {self.get_entity_type().lower()}s: {e}")
             return {"items": [], "last_evaluated_key": None, "count": 0}
+
+    def _build_query_params(
+        self, limit, sort_order, include_deleted, last_evaluated_key, search
+    ):
+        """Build query parameters for DynamoDB query."""
+        query_params = {
+            "TableName": self.table_name,
+            "IndexName": "GSI2",
+            "KeyConditionExpression": "EntityType = :entity_type",
+            "ExpressionAttributeValues": {
+                ":entity_type": {"S": self.get_entity_type()},
+            },
+            "Limit": min(limit * 3, 100),
+            "ScanIndexForward": sort_order.lower() == "asc",
+        }
+
+        if not include_deleted:
+            query_params["FilterExpression"] = (
+                "(attribute_not_exists(DeletedAt) OR DeletedAt = :null_str)"
+            )
+            query_params["ExpressionAttributeValues"][":null_str"] = {"S": "NULL"}
+
+        if last_evaluated_key:
+            query_params["ExclusiveStartKey"] = last_evaluated_key
+
+        if search:
+            self._add_search_filter(query_params, search)
+
+        return query_params
+
+    def _add_search_filter(self, query_params, search):
+        """Add search filter to query parameters."""
+        filter_expr = query_params.get("FilterExpression", "")
+        if filter_expr:
+            filter_expr += " AND "
+        filter_expr += "contains(#name, :search)"
+        query_params["FilterExpression"] = filter_expr
+
+        if "ExpressionAttributeNames" not in query_params:
+            query_params["ExpressionAttributeNames"] = {}
+        query_params["ExpressionAttributeNames"]["#name"] = "Name"
+        query_params["ExpressionAttributeValues"][":search"] = {"S": search}
+
+    def _process_query_response(self, response, limit):
+        """Process DynamoDB query response and convert to models."""
+        model_class = self.get_model_class()
+        entities = []
+
+        for item in response.get("Items", []):
+            try:
+                entity = model_class.from_ddb_item(item)
+                entities.append(entity)
+                if len(entities) >= limit:
+                    break
+            except Exception as e:
+                logger.warning(f"Skipping invalid record: {e}")
+                continue
+
+        return {
+            "items": entities,
+            "last_evaluated_key": response.get("LastEvaluatedKey"),
+            "count": len(entities),
+        }
 
     def batch_get_by_ids(self, entity_ids: List[str]) -> List[T]:
         """
@@ -322,7 +324,8 @@ class BaseRepository(ABC):
                         all_entities.append(entity)
                     except Exception as e:
                         logger.warning(
-                            f"Failed to parse {self.get_entity_type().lower()} item: {e}"
+                            f"Failed to parse "
+                            f"{self.get_entity_type().lower()} item: {e}"
                         )
                         continue
 

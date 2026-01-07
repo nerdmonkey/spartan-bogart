@@ -19,8 +19,9 @@ class AppService:
     def _load_config():
         """Load configuration from environment variables.
 
-        This function retrieves the table name and region name from environment variables.
-        If the environment variables are not set, default values are used.
+        This function retrieves the table name and region name from
+        environment variables. If the environment variables are not set,
+        default values are used.
 
         Returns:
             tuple: A tuple containing the table name and region name.
@@ -33,12 +34,14 @@ class AppService:
     def _setup_dynamodb():
         """Set up the DynamoDB resource and table.
 
-        This function initializes the DynamoDB resource and table based on the configuration
-        loaded from the app's configuration file. It uses the `boto3` library to create the
-        DynamoDB resource and retrieve the specified table.
+        This function initializes the DynamoDB resource and table based on
+        the configuration loaded from the app's configuration file. It uses
+        the `boto3` library to create the DynamoDB resource and retrieve the
+        specified table.
 
         Returns:
-            tuple: A tuple containing the DynamoDB resource and the table object.
+            tuple: A tuple containing the DynamoDB resource and the table
+            object.
 
         """
         table_name, region_name = AppService._load_config()
@@ -72,25 +75,25 @@ class AppService:
         return jsonpickle.decode(value)
 
     def _handle_dynamodb_error(self, error, action):
-        """
-        Handle DynamoDB errors.
+        """Handle DynamoDB errors.
 
-        This method is responsible for handling errors that occur during DynamoDB operations.
-        It logs the error message and raises the error.
+        This method is responsible for handling errors that occur during
+        DynamoDB operations. It logs the error message and raises the error.
 
         Args:
-            error (Exception): The error that occurred during the DynamoDB operation.
+            error (Exception): The error that occurred during the DynamoDB
+                operation.
             action (str): The action being performed when the error occurred.
 
         Raises:
-            Exception: The original error that occurred during the DynamoDB operation.
+            Exception: The original error that occurred during the DynamoDB
+                operation.
 
         """
         raise error
 
     def set_state(self, key, value):
-        """
-        Sets or updates a state in the DynamoDB table.
+        """Sets or updates a state in the DynamoDB table.
 
         Args:
             key (str): The key of the state to be set or updated.
@@ -100,7 +103,8 @@ class AppService:
             Any: The updated value of the state.
 
         Raises:
-            boto3.exceptions.Boto3Error: If there is an error while setting or updating the state.
+            boto3.exceptions.Boto3Error: If there is an error while setting
+                or updating the state.
         """
         try:
             value_json = self._serialize(value)
