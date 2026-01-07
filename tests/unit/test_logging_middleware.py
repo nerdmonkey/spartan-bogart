@@ -1,4 +1,5 @@
 """Unit tests for logging middleware using pytest-mock conventions"""
+
 from unittest.mock import Mock
 
 import pytest

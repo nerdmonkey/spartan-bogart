@@ -127,11 +127,7 @@ class AppService:
         try:
             response = self.table.get_item(Key={"Key": key})
             item = response.get("Item", {})
-            return (
-                self._deserialize(item["Attr_Data"])
-                if "Attr_Data" in item
-                else None
-            )
+            return self._deserialize(item["Attr_Data"]) if "Attr_Data" in item else None
         except boto3.exceptions.Boto3Error as e:
             self._handle_dynamodb_error(e, "getting")
 

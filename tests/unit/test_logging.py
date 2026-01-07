@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 
@@ -60,7 +58,7 @@ def test_stream_logger_format_and_fallback(monkeypatch):
 
 def test_prettify_extra_and_bothlogger_delegation(monkeypatch):
     # Test _prettify_extra behavior directly
-    from app.services.logging.both import _prettify_extra, BothLogger
+    from app.services.logging.both import BothLogger, _prettify_extra
 
     extra = {"password": "s", "name": "bob"}
     pretty = _prettify_extra(extra)

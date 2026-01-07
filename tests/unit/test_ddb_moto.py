@@ -6,8 +6,6 @@ without relying on moto being installed.
 
 from types import SimpleNamespace
 
-import pytest
-
 import app.helpers.ddb as ddb_mod
 
 

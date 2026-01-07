@@ -48,9 +48,7 @@ def test_db_session():
 
     engine = create_engine(TEST_DATABASE_URL)
     Base.metadata.create_all(bind=engine)
-    TestingSessionLocal = sessionmaker(
-        autocommit=False, autoflush=False, bind=engine
-    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     db = TestingSessionLocal()
 
@@ -130,8 +128,7 @@ def _prevent_external_calls(monkeypatch, request):
 
     # Skip socket blocking for stock API tests
     if request.node.name and (
-        "stock" in request.node.name.lower()
-        or "test_stocks" in request.module.__name__
+        "stock" in request.node.name.lower() or "test_stocks" in request.module.__name__
         if hasattr(request, "module")
         else False
     ):
@@ -161,9 +158,7 @@ def mock_env_cloud():
             return "test_service"
         return default  # Return default instead of None
 
-    with patch(
-        "app.helpers.tracer.factory.os.getenv", side_effect=mock_getenv
-    ) as mock:
+    with patch("app.helpers.tracer.factory.os.getenv", side_effect=mock_getenv) as mock:
         yield mock
 
 

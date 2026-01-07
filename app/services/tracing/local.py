@@ -69,9 +69,7 @@ class LocalTracer(BaseTracer):
                 result = method(*args, **kwargs)
                 end_time = time()
                 processing_time = end_time - start_time
-                self._write_trace(
-                    method.__name__, {"processing_time": processing_time}
-                )
+                self._write_trace(method.__name__, {"processing_time": processing_time})
                 return result
             except Exception as e:
                 end_time = time()
@@ -85,9 +83,7 @@ class LocalTracer(BaseTracer):
         return wrapper
 
     @contextmanager
-    def create_segment(
-        self, name: str, metadata: Optional[Dict[str, Any]] = None
-    ):
+    def create_segment(self, name: str, metadata: Optional[Dict[str, Any]] = None):
         start_time = time()
         self._write_trace(name, metadata)
         try:

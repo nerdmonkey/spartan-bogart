@@ -1,6 +1,7 @@
 import json
-import pytest
 from types import SimpleNamespace
+
+import pytest
 
 from app.helpers.secret import Secret
 

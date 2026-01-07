@@ -79,12 +79,13 @@ def test_handlers_singleton_and_handler_configs(monkeypatch):
     from config.logging import TcpHandlerConfig
 
     with pytest.raises(Exception):
-        TcpHandlerConfig(class_="x", formatter="json", name="n", level="INFO", host="h", port=70000)
+        TcpHandlerConfig(
+            class_="x", formatter="json", name="n", level="INFO", host="h", port=70000
+        )
 
 
 def test_filehandler_pydantic_serialization_and_validation(monkeypatch):
     """Ensure json_deserializer attribute exists but is excluded from model dumps and invalid values raise."""
-    import json as _json
 
     mapping = {"APP_NAME": "appx", "LOG_LEVEL": "WARN", "LOG_FILE": "/tmp/appx.log"}
     monkeypatch.setattr("app.helpers.environment.env", make_env(mapping))
@@ -92,7 +93,13 @@ def test_filehandler_pydantic_serialization_and_validation(monkeypatch):
     log_mod = importlib.reload(importlib.import_module("config.logging"))
 
     # Default FileHandlerConfig should have a callable json_deserializer attribute
-    fh = log_mod.FileHandlerConfig(class_="logging.FileHandler", formatter="json", name="appx", level="WARN", path="/tmp/a")
+    fh = log_mod.FileHandlerConfig(
+        class_="logging.FileHandler",
+        formatter="json",
+        name="appx",
+        level="WARN",
+        path="/tmp/a",
+    )
     assert callable(getattr(fh, "json_deserializer"))
 
     # model dump should not contain json_deserializer (field has exclude=True)
@@ -101,7 +108,14 @@ def test_filehandler_pydantic_serialization_and_validation(monkeypatch):
 
     # Passing a non-callable json_deserializer should raise
     with pytest.raises(Exception):
-        log_mod.FileHandlerConfig(class_="x", formatter="json", name="n", level="INFO", path="/tmp/a", json_deserializer=123)
+        log_mod.FileHandlerConfig(
+            class_="x",
+            formatter="json",
+            name="n",
+            level="INFO",
+            path="/tmp/a",
+            json_deserializer=123,
+        )
 
 
 def test_handlers_singleton_behavior(monkeypatch):

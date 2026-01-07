@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 from pydantic import ConfigDict, field_validator
@@ -126,9 +126,7 @@ class EnvironmentVariables(BaseSettings):
 
 
 @lru_cache()
-def env(
-    var_name: Optional[str] = None, default: Optional[str] = None
-) -> Optional[str]:
+def env(var_name: Optional[str] = None, default: Optional[str] = None) -> Optional[str]:
     """
     Create and return an instance of EnvironmentVariables or a specific
     environment variable.

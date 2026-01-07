@@ -101,9 +101,7 @@ class UserService:
         # Apply date filtering directly within UserService
         if start_date and end_date:
             users = [
-                user
-                for user in users
-                if start_date <= user.created_at <= end_date
+                user for user in users if start_date <= user.created_at <= end_date
             ]
 
         # Convert users to response format
@@ -239,9 +237,7 @@ class UserService:
         )
 
     def bulk_delete(self, user_ids: List[int]) -> List[int]:
-        users_to_delete = (
-            self.db.query(User).filter(User.id.in_(user_ids)).all()
-        )
+        users_to_delete = self.db.query(User).filter(User.id.in_(user_ids)).all()
 
         if not users_to_delete:
             raise UserNotFoundException("No users found for the given IDs")

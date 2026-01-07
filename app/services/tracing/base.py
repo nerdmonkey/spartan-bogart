@@ -14,7 +14,5 @@ class BaseTracer(ABC):
 
     @abstractmethod
     @contextmanager
-    def create_segment(
-        self, name: str, metadata: Optional[Dict[str, Any]] = None
-    ):
+    def create_segment(self, name: str, metadata: Optional[Dict[str, Any]] = None):
         pass

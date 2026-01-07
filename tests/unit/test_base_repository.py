@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+
 # Prevent app.helpers.ddb from initializing real clients during module import
 # by setting test environment early.
 os.environ.setdefault("APP_ENVIRONMENT", "test")
@@ -12,6 +13,7 @@ os.environ.setdefault("APP_ENVIRONMENT", "test")
 # `app.repositories.__init__` which imports many repository modules.
 import importlib.util
 from pathlib import Path
+
 
 base_path = Path(__file__).resolve().parents[2] / "app" / "repositories" / "base.py"
 spec = importlib.util.spec_from_file_location("app_repositories_base", str(base_path))
@@ -84,7 +86,12 @@ def test_get_by_id_success_and_deleted(mocker):
     assert entity.id == "123"
 
     # If item contains DeletedAt -> get_by_id should return None
-    item_deleted = {"PK": {"S": "ENTITY#999"}, "SK": {"S": "METADATA"}, "Name": {"S": "ok"}, "DeletedAt": {"S": "2020"}}
+    item_deleted = {
+        "PK": {"S": "ENTITY#999"},
+        "SK": {"S": "METADATA"},
+        "Name": {"S": "ok"},
+        "DeletedAt": {"S": "2020"},
+    }
     client2 = SimpleNamespace(get_item=lambda **k: {"Item": item_deleted})
     repo2 = make_repo_with_client(client2)
     assert repo2.get_by_id("999") is None
@@ -150,7 +157,12 @@ def test_list_by_entity_type_filters_and_skips_invalid(mocker):
 def test_batch_get_by_ids_skips_deleted(mocker):
     items = [
         {"PK": {"S": "ENTITY#1"}, "SK": {"S": "METADATA"}, "Name": {"S": "one"}},
-        {"PK": {"S": "ENTITY#2"}, "SK": {"S": "METADATA"}, "Name": {"S": "two"}, "DeletedAt": {"S": "2020"}},
+        {
+            "PK": {"S": "ENTITY#2"},
+            "SK": {"S": "METADATA"},
+            "Name": {"S": "two"},
+            "DeletedAt": {"S": "2020"},
+        },
     ]
 
     def batch_get_item(RequestItems):
@@ -182,7 +194,11 @@ def test_list_by_entity_type_with_pagination_and_search(mocker):
     ]
 
     def query(**k):
-        return {"Items": items, "Count": 3, "LastEvaluatedKey": {"PK": {"S": "ENTITY#3"}}}
+        return {
+            "Items": items,
+            "Count": 3,
+            "LastEvaluatedKey": {"PK": {"S": "ENTITY#3"}},
+        }
 
     client = SimpleNamespace(query=query)
     repo = make_repo_with_client(client)
@@ -206,13 +222,29 @@ def test_batch_get_by_ids_batches_and_handles_parse_errors(mocker):
         if first_pk.endswith("#1"):
             # simulate many items returned for first batch
             resp_items = [
-                {"PK": {"S": "ENTITY#1"}, "SK": {"S": "METADATA"}, "Name": {"S": "one"}},
-                {"PK": {"S": "ENTITY#2"}, "SK": {"S": "METADATA"}, "Name": {"S": "two"}},
+                {
+                    "PK": {"S": "ENTITY#1"},
+                    "SK": {"S": "METADATA"},
+                    "Name": {"S": "one"},
+                },
+                {
+                    "PK": {"S": "ENTITY#2"},
+                    "SK": {"S": "METADATA"},
+                    "Name": {"S": "two"},
+                },
             ]
         else:
             resp_items = [
-                {"PK": {"S": "ENTITY#3"}, "SK": {"S": "METADATA"}, "Name": {"S": "bad"}},
-                {"PK": {"S": "ENTITY#4"}, "SK": {"S": "METADATA"}, "Name": {"S": "four"}},
+                {
+                    "PK": {"S": "ENTITY#3"},
+                    "SK": {"S": "METADATA"},
+                    "Name": {"S": "bad"},
+                },
+                {
+                    "PK": {"S": "ENTITY#4"},
+                    "SK": {"S": "METADATA"},
+                    "Name": {"S": "four"},
+                },
             ]
         return {"Responses": {"tbl": resp_items}}
 
@@ -297,7 +329,9 @@ def test_list_by_entity_type_handles_query_exception(mocker):
 
 
 def test_batch_get_by_ids_handles_batch_exception(mocker):
-    client = SimpleNamespace(batch_get_item=lambda **k: (_ for _ in ()).throw(Exception("boom")))
+    client = SimpleNamespace(
+        batch_get_item=lambda **k: (_ for _ in ()).throw(Exception("boom"))
+    )
     repo = make_repo_with_client(client, table_name="tbl")
     out = repo.batch_get_by_ids(["1", "2"])
     assert out == []
@@ -310,25 +344,42 @@ def test_list_by_entity_type_builds_search_and_filters(mocker):
         # capture the query params passed to dynamodb
         captured.update(k)
         # return a single valid item
-        return {"Items": [{"PK": {"S": "ENTITY#1"}, "SK": {"S": "METADATA"}, "Name": {"S": "one"}}], "Count": 1}
+        return {
+            "Items": [
+                {"PK": {"S": "ENTITY#1"}, "SK": {"S": "METADATA"}, "Name": {"S": "one"}}
+            ],
+            "Count": 1,
+        }
 
     client = SimpleNamespace(query=query)
     repo = make_repo_with_client(client)
 
-    out = repo.list_by_entity_type(limit=5, search="foo", sort_by="created_at", sort_order="asc", include_deleted=False)
+    out = repo.list_by_entity_type(
+        limit=5,
+        search="foo",
+        sort_by="created_at",
+        sort_order="asc",
+        include_deleted=False,
+    )
 
     # verify we got one item
     assert out["count"] == 1
 
     # verify query params include deletion filter and search filter
     assert "FilterExpression" in captured
-    assert "DeletedAt" in captured["FilterExpression"] or "attribute_not_exists(DeletedAt)" in captured["FilterExpression"]
+    assert (
+        "DeletedAt" in captured["FilterExpression"]
+        or "attribute_not_exists(DeletedAt)" in captured["FilterExpression"]
+    )
     # search adds contains(#name, :search)
     assert "contains(#name, :search)" in captured["FilterExpression"]
     # ExpressionAttributeNames should map #name to Name
     assert captured.get("ExpressionAttributeNames", {}).get("#name") == "Name"
     # ExpressionAttributeValues should include :search
-    assert captured.get("ExpressionAttributeValues", {}).get(":search", {}).get("S") == "foo"
+    assert (
+        captured.get("ExpressionAttributeValues", {}).get(":search", {}).get("S")
+        == "foo"
+    )
     # Limit should be min(limit*3, 100) => 15
     assert captured.get("Limit") == 15
     # ScanIndexForward should be True because sort_order=asc
@@ -345,7 +396,9 @@ def test_list_by_entity_type_include_deleted_true_no_deletion_filter(mocker):
     client = SimpleNamespace(query=query)
     repo = make_repo_with_client(client)
 
-    out = repo.list_by_entity_type(limit=2, search=None, sort_order="desc", include_deleted=True)
+    out = repo.list_by_entity_type(
+        limit=2, search=None, sort_order="desc", include_deleted=True
+    )
 
     # No deletion FilterExpression when include_deleted=True
     fe = captured.get("FilterExpression")

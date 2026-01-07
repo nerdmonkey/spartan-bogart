@@ -10,12 +10,20 @@ def _prettify_extra(extra):
         return ""
 
     # Apply PII sanitization to extra data before displaying
-    _sensitive_fields = {'password', 'token', 'secret', 'key', 'auth', 'credentials', 'api_key'}
+    _sensitive_fields = {
+        "password",
+        "token",
+        "secret",
+        "key",
+        "auth",
+        "credentials",
+        "api_key",
+    }
 
     sanitized_extra = {}
     for key, value in extra.items():
         if key.lower() in _sensitive_fields:
-            sanitized_extra[key] = '[REDACTED]'
+            sanitized_extra[key] = "[REDACTED]"
         else:
             sanitized_extra[key] = value
 
@@ -26,11 +34,13 @@ def _prettify_extra(extra):
 
 
 class BothLogger(BaseLogger):
-    def __init__(self, service_name: str, level: str = "INFO", sample_rate: float = None):
-        self.file_logger = FileLogger(service_name=service_name, level=level, sample_rate=sample_rate)
-        self.stream_logger = StreamLogger(
-            service_name=service_name, level=level
+    def __init__(
+        self, service_name: str, level: str = "INFO", sample_rate: float = None
+    ):
+        self.file_logger = FileLogger(
+            service_name=service_name, level=level, sample_rate=sample_rate
         )
+        self.stream_logger = StreamLogger(service_name=service_name, level=level)
         self.level = level
         self.service_name = service_name
 
@@ -47,9 +57,7 @@ class BothLogger(BaseLogger):
     def warning(self, message: str, **kwargs):
         extra = kwargs.get("extra")
         stacklevel = kwargs.pop("stacklevel", 6)
-        self.file_logger.warning(
-            message, **{**kwargs, "stacklevel": stacklevel}
-        )
+        self.file_logger.warning(message, **{**kwargs, "stacklevel": stacklevel})
         self.stream_logger.warning(message + _prettify_extra(extra))
 
     def error(self, message: str, **kwargs):

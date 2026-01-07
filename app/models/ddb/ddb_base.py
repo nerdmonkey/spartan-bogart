@@ -56,9 +56,7 @@ class DDBModel(BaseModel, ABC):
                 elif isinstance(value, list):
                     item[key] = {"L": [{"S": str(v)} for v in value]}
                 elif isinstance(value, dict):
-                    item[key] = {
-                        "M": {k: {"S": str(v)} for k, v in value.items()}
-                    }
+                    item[key] = {"M": {k: {"S": str(v)} for k, v in value.items()}}
                 else:
                     item[key] = {"S": str(value)}
 

@@ -96,9 +96,7 @@ class BaseRepository(ABC):
             return True
 
         except Exception as e:
-            logger.error(
-                f"Failed to save {self.get_entity_type().lower()}: {e}"
-            )
+            logger.error(f"Failed to save {self.get_entity_type().lower()}: {e}")
             return False
 
     def delete_by_id(self, entity_id: str) -> bool:
@@ -228,12 +226,10 @@ class BaseRepository(ABC):
 
             # Add soft deletion filter
             if not include_deleted:
-                query_params[
-                    "FilterExpression"
-                ] = "(attribute_not_exists(DeletedAt) OR DeletedAt = :null_str)"
-                query_params["ExpressionAttributeValues"][":null_str"] = {
-                    "S": "NULL"
-                }
+                query_params["FilterExpression"] = (
+                    "(attribute_not_exists(DeletedAt) OR DeletedAt = :null_str)"
+                )
+                query_params["ExpressionAttributeValues"][":null_str"] = {"S": "NULL"}
 
             # Add pagination token if provided
             if last_evaluated_key:
@@ -249,9 +245,7 @@ class BaseRepository(ABC):
                 if "ExpressionAttributeNames" not in query_params:
                     query_params["ExpressionAttributeNames"] = {}
                 query_params["ExpressionAttributeNames"]["#name"] = "Name"
-                query_params["ExpressionAttributeValues"][":search"] = {
-                    "S": search
-                }
+                query_params["ExpressionAttributeValues"][":search"] = {"S": search}
 
             logger.info(f"Query params: {query_params}")
             response = self.dynamodb.query(**query_params)
@@ -277,9 +271,7 @@ class BaseRepository(ABC):
             }
 
         except Exception as e:
-            logger.error(
-                f"Failed to list {self.get_entity_type().lower()}s: {e}"
-            )
+            logger.error(f"Failed to list {self.get_entity_type().lower()}s: {e}")
             return {"items": [], "last_evaluated_key": None, "count": 0}
 
     def batch_get_by_ids(self, entity_ids: List[str]) -> List[T]:
@@ -321,9 +313,7 @@ class BaseRepository(ABC):
 
                 # Convert items to models
                 model_class = self.get_model_class()
-                for item in response.get("Responses", {}).get(
-                    self.table_name, []
-                ):
+                for item in response.get("Responses", {}).get(self.table_name, []):
                     try:
                         entity = model_class.from_ddb_item(item)
                         # Skip soft deleted items
@@ -339,9 +329,7 @@ class BaseRepository(ABC):
             return all_entities
 
         except Exception as e:
-            logger.error(
-                f"Failed to batch get {self.get_entity_type().lower()}s: {e}"
-            )
+            logger.error(f"Failed to batch get {self.get_entity_type().lower()}s: {e}")
             return []
 
     def exists(self, entity_id: str) -> bool:

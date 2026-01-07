@@ -1,5 +1,7 @@
 import json
+
 from app.helpers.context import MockLambdaContext, MockLambdaEvent
+
 
 def test_mock_lambda_context_attributes():
     ctx = MockLambdaContext()
@@ -11,6 +13,7 @@ def test_mock_lambda_context_attributes():
     assert ctx.log_group_name == "/aws/lambda/mock_function_name"
     assert ctx.log_stream_name.startswith("2024/10/20")
     assert ctx.get_remaining_time_in_millis() == 300000
+
 
 def test_mock_lambda_event_to_dict_and_json():
     event = MockLambdaEvent()

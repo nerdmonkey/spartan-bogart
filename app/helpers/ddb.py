@@ -75,7 +75,6 @@ def get_dynamodb_clients():
 
 
 # Initialize clients lazily for testing compatibility
-import os
 
 
 # Do not initialize DynamoDB clients at import time. Keep lazy initialization

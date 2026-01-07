@@ -11,7 +11,9 @@ def test_file_logger_writes_json(tmp_path, monkeypatch):
         lambda k, d=None: {"APP_ENVIRONMENT": "test", "APP_VERSION": "1.2.3"}.get(k, d),
     )
 
-    fl = FileLogger(service_name="svc", level="INFO", log_dir=str(tmp_path), sample_rate=1.0)
+    fl = FileLogger(
+        service_name="svc", level="INFO", log_dir=str(tmp_path), sample_rate=1.0
+    )
 
     # Emit a log with extra data, including a sensitive field
     fl.info("hello", extra={"foo": "bar", "password": "mypw"})
@@ -51,7 +53,9 @@ def test_file_logger_sampling_prevents_writes(tmp_path, monkeypatch):
         lambda k, d=None: {"APP_ENVIRONMENT": "test", "APP_VERSION": "1.2.3"}.get(k, d),
     )
 
-    fl = FileLogger(service_name="svc", level="INFO", log_dir=str(tmp_path), sample_rate=0.0)
+    fl = FileLogger(
+        service_name="svc", level="INFO", log_dir=str(tmp_path), sample_rate=0.0
+    )
     # Note: FileLogger.__init__ treats falsy sample_rate specially, so set explicitly on the
     # instance to ensure sampling is disabled for the test.
     fl.sample_rate = 0.0
@@ -79,7 +83,9 @@ def test_file_logger_exception_includes_exception(tmp_path, monkeypatch):
         lambda k, d=None: {"APP_ENVIRONMENT": "prod", "APP_VERSION": "9.9.9"}.get(k, d),
     )
 
-    fl = FileLogger(service_name="svc", level="ERROR", log_dir=str(tmp_path), sample_rate=1.0)
+    fl = FileLogger(
+        service_name="svc", level="ERROR", log_dir=str(tmp_path), sample_rate=1.0
+    )
 
     try:
         raise RuntimeError("boom")
@@ -104,8 +110,9 @@ def test_file_logger_exception_includes_exception(tmp_path, monkeypatch):
 
 def test_file_logger_rotation(tmp_path, monkeypatch):
     """RotatingFileHandler should create rotated backups when size exceeded."""
-    from app.services.logging.file import FileLogger
     import time
+
+    from app.services.logging.file import FileLogger
 
     monkeypatch.setattr(
         "app.services.logging.file.env",
@@ -113,7 +120,14 @@ def test_file_logger_rotation(tmp_path, monkeypatch):
     )
 
     # Small max_bytes to trigger rotation quickly
-    fl = FileLogger(service_name="svc", level="INFO", log_dir=str(tmp_path), max_bytes=200, backup_count=2, sample_rate=1.0)
+    fl = FileLogger(
+        service_name="svc",
+        level="INFO",
+        log_dir=str(tmp_path),
+        max_bytes=200,
+        backup_count=2,
+        sample_rate=1.0,
+    )
 
     # Write many messages until rotated files appear
     for i in range(200):
@@ -130,20 +144,25 @@ def test_file_logger_rotation(tmp_path, monkeypatch):
     files = sorted(p.name for p in tmp_path.iterdir())
     # Expect at least the main log and one rotated backup
     assert any(name.startswith("svc.log") for name in files)
-    assert any(name.startswith("svc.log.") for name in files), f"Rotation not observed, files: {files}"
+    assert any(
+        name.startswith("svc.log.") for name in files
+    ), f"Rotation not observed, files: {files}"
 
 
 def test_file_logger_json_schema_and_pii_cases(tmp_path, monkeypatch):
     """Verify timestamp parseable, location present, and PII redaction is case-insensitive and applies to top-level attrs."""
-    from app.services.logging.file import FileLogger
     from datetime import datetime
+
+    from app.services.logging.file import FileLogger
 
     monkeypatch.setattr(
         "app.services.logging.file.env",
         lambda k, d=None: {"APP_ENVIRONMENT": "ci", "APP_VERSION": "0.0.0"}.get(k, d),
     )
 
-    fl = FileLogger(service_name="svc", level="INFO", log_dir=str(tmp_path), sample_rate=1.0)
+    fl = FileLogger(
+        service_name="svc", level="INFO", log_dir=str(tmp_path), sample_rate=1.0
+    )
 
     # password as mixed-case in extra should be redacted
     # Put api_key inside extra because FileLogger._log only forwards `extra` to the logging call
@@ -166,7 +185,9 @@ def test_file_logger_json_schema_and_pii_cases(tmp_path, monkeypatch):
     assert ":" in entry["location"]
 
     # Mixed-case key was redacted
-    assert entry.get("Password") == "[REDACTED]" or entry.get("password") == "[REDACTED]"
+    assert (
+        entry.get("Password") == "[REDACTED]" or entry.get("password") == "[REDACTED]"
+    )
 
     # Top-level kwarg api_key should be redacted
     assert entry.get("api_key") == "[REDACTED]"
