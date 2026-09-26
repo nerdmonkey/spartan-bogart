@@ -180,6 +180,7 @@ build.sql
 docker-compose.yml
 
 *.yml
+!.github/**/*.yml
 tinker.py
 .python_version
 .env.*

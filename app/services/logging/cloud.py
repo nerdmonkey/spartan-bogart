@@ -41,51 +41,56 @@ class CloudWatchLogger(BaseLogger):
         # Override the formatter to use our custom location
         self._setup_custom_formatter()
 
+    def _sanitize_log_data(self, log_data: dict) -> None:
+        """Redact sensitive fields in-place. aws_lambda_powertools flattens
+        `extra` kwargs onto the top-level record rather than nesting them
+        under an "extra" key, so top-level keys must be checked directly.
+        A nested "extra" dict is also sanitized in case it's present (e.g.
+        from a differently configured formatter upstream).
+        """
+        for key in list(log_data.keys()):
+            if key.lower() in self._sensitive_fields:
+                log_data[key] = "[REDACTED]"
+
+        if "extra" in log_data and isinstance(log_data["extra"], dict):
+            for key in list(log_data["extra"].keys()):
+                if key.lower() in self._sensitive_fields:
+                    log_data["extra"][key] = "[REDACTED]"
+
+    def _make_custom_format(self, original_format):
+        """Build a formatter function that adds location/metadata and
+        sanitizes sensitive fields on top of the original formatted output.
+        """
+
+        def custom_format(record):
+            original_msg = original_format(record)
+
+            try:
+                log_data = json.loads(original_msg)
+                if hasattr(record, "caller_location"):
+                    log_data["location"] = record.caller_location
+
+                log_data["environment"] = env("APP_ENVIRONMENT", "unknown")
+                log_data["version"] = env("APP_VERSION", "unknown")
+
+                self._sanitize_log_data(log_data)
+
+                return json.dumps(log_data)
+            except (json.JSONDecodeError, AttributeError):
+                pass
+
+            return original_msg
+
+        return custom_format
+
     def _setup_custom_formatter(self):
         """Setup custom formatter that uses our location detection."""
         for handler in self.logger._logger.handlers:
             if hasattr(handler, "formatter"):
-                original_format = handler.formatter.format
-
-                def custom_format(record):
-                    # Get original formatted message
-                    original_msg = original_format(record)
-
-                    # Parse JSON to modify location and add metadata
-                    try:
-                        log_data = json.loads(original_msg)
-                        # Replace location with our custom caller_location if it exists
-                        if hasattr(record, "caller_location"):
-                            log_data["location"] = record.caller_location
-
-                        # Add environment metadata
-                        log_data["environment"] = env("APP_ENVIRONMENT", "unknown")
-                        log_data["version"] = env("APP_VERSION", "unknown")
-
-                        # Sanitize sensitive fields. aws_lambda_powertools
-                        # flattens `extra` kwargs onto the top-level record
-                        # rather than nesting them under an "extra" key, so
-                        # top-level keys must be checked directly.
-                        for key in list(log_data.keys()):
-                            if key.lower() in self._sensitive_fields:
-                                log_data[key] = "[REDACTED]"
-
-                        # Still sanitize a nested "extra" dict if one is
-                        # present (e.g. from a differently configured
-                        # formatter upstream).
-                        if "extra" in log_data and isinstance(log_data["extra"], dict):
-                            for key in list(log_data["extra"].keys()):
-                                if key.lower() in self._sensitive_fields:
-                                    log_data["extra"][key] = "[REDACTED]"
-
-                        return json.dumps(log_data)
-                    except (json.JSONDecodeError, AttributeError):
-                        pass
-
-                    return original_msg
-
                 # Monkey patch the formatter
-                handler.formatter.format = custom_format
+                handler.formatter.format = self._make_custom_format(
+                    handler.formatter.format
+                )
 
     def _get_caller_location(self):
         """Get the actual caller location, excluding logging-related files."""
@@ -118,7 +123,8 @@ class CloudWatchLogger(BaseLogger):
 
     def _should_sample_log(self) -> bool:
         """Determine if this log should be sampled based on sample rate."""
-        return random.random() <= self.sample_rate
+        # Sampling rate check, not a cryptographic use.
+        return random.random() <= self.sample_rate  # nosec B311
 
     def info(self, message: str, **kwargs):
         # Apply sampling for high-volume scenarios

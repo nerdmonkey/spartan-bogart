@@ -57,7 +57,8 @@ class FileLogger(BaseLogger):
 
     def _should_sample_log(self) -> bool:
         """Determine if this log should be sampled based on sample rate."""
-        return random.random() <= self.sample_rate
+        # Sampling rate check, not a cryptographic use.
+        return random.random() <= self.sample_rate  # nosec B311
 
     def _log(self, level: str, message: str, **kwargs):
         # Apply sampling for high-volume scenarios

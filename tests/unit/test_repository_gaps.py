@@ -7,7 +7,9 @@ from types import SimpleNamespace
 os.environ.setdefault("APP_ENVIRONMENT", "test")
 
 base_path = Path(__file__).resolve().parents[2] / "app" / "repositories" / "base.py"
-spec = importlib.util.spec_from_file_location("app_repositories_base_gaps", str(base_path))
+spec = importlib.util.spec_from_file_location(
+    "app_repositories_base_gaps", str(base_path)
+)
 base_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base_mod)
 BaseRepository = base_mod.BaseRepository

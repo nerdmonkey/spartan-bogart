@@ -39,9 +39,7 @@ def test_module_entrypoint_logs_unhandled_exception(monkeypatch):
         def exception(self, *args, **kwargs):
             exception_calls.append((args, kwargs))
 
-    monkeypatch.setattr(
-        "app.helpers.logger.get_logger", lambda name=None: FakeLogger()
-    )
+    monkeypatch.setattr("app.helpers.logger.get_logger", lambda name=None: FakeLogger())
 
     runpy.run_module("handlers.inference", run_name="__main__")
 
