@@ -195,6 +195,56 @@ def test_update_user_not_found(user_service):
         user_service.update(999, UserUpdateRequest(username="notfound"))
 
 
+def test_update_user_rehashes_password(user_service):
+    resp = user_service.save(
+        UserCreateRequest(username="bob", email="bob@example.com", password="pw")
+    )
+    updated = user_service.update(resp.id, UserUpdateRequest(password="newpw"))
+    stored = user_service.get_by_id(resp.id)
+    assert stored.password == "hashed_newpw"
+    assert updated.username == "bob"
+
+
+def test_all_filters_by_username(user_service):
+    user_service.db.users.clear()
+    user_service.db.last_id = 0
+    user_service.save(
+        UserCreateRequest(username="findme", email="findme@x.com", password="pw")
+    )
+    user_service.save(
+        UserCreateRequest(username="other", email="other@x.com", password="pw")
+    )
+
+    users, total, _, _, _ = user_service.all(username="findme")
+    assert total == 1
+    assert users[0].username == "findme"
+
+
+def test_all_filters_by_date_range(user_service):
+    user_service.db.users.clear()
+    user_service.db.last_id = 0
+    user_service.save(
+        UserCreateRequest(
+            username="early", email="early@x.com", password="pw"
+        )
+    )
+    resp_in_range = user_service.save(
+        UserCreateRequest(username="mid", email="mid@x.com", password="pw")
+    )
+    for user in user_service.db.users:
+        if user.id == resp_in_range.id:
+            user.created_at = datetime(2024, 6, 15)
+        else:
+            user.created_at = datetime(2023, 1, 1)
+
+    users, total, _, _, _ = user_service.all(
+        start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31)
+    )
+    assert total == 2  # total count() is unaffected by the date filter
+    assert len(users) == 1
+    assert users[0].username == "mid"
+
+
 def test_delete_user(user_service):
     resp = user_service.save(
         UserCreateRequest(username="bob", email="bob@example.com", password="pw")

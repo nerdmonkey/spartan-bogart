@@ -83,16 +83,6 @@ class EnvironmentVariables(BaseSettings):
 
     model_config = ConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    @field_validator("APP_ENVIRONMENT")
-    def validate_app_environment(cls, v):
-        """Validate APP_ENVIRONMENT is one of the expected values."""
-        valid_environments = ["local", "dev", "uat", "prod", "test"]
-        if v not in valid_environments:
-            raise ValueError(
-                f"APP_ENVIRONMENT must be one of {valid_environments}, got '{v}'"
-            )
-        return v
-
     @field_validator("DB_PORT", mode="before")
     def default_db_port(cls, v):
         if v is None or v == "":
