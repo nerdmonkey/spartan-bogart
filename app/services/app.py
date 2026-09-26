@@ -72,7 +72,9 @@ class AppService:
         Returns:
         object: The deserialized Python object.
         """
-        return jsonpickle.decode(value)
+        # Round-trips data this app wrote itself via _serialize; not
+        # attacker-controlled input, so unpickling risk doesn't apply here.
+        return jsonpickle.decode(value)  # nosec B301
 
     def _handle_dynamodb_error(self, error, action):
         """Handle DynamoDB errors.

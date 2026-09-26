@@ -39,53 +39,57 @@ def test_prettify_extra_falls_back_on_serialization_error():
     assert "unserializable-obj" in pretty
 
 
+class _FakeFileLogger:
+    def __init__(self, *a, **k):
+        self.calls = []
+
+    def log(self, message, level=None):
+        self.calls.append(("log", message, level))
+
+    def warning(self, message, **kwargs):
+        self.calls.append(("warning", message, kwargs))
+
+    def error(self, message, **kwargs):
+        self.calls.append(("error", message, kwargs))
+
+    def debug(self, message, **kwargs):
+        self.calls.append(("debug", message, kwargs))
+
+    def exception(self, message, *args, **kwargs):
+        self.calls.append(("exception", message, args, kwargs))
+
+
+class _FakeStreamLogger:
+    def __init__(self, *a, **k):
+        self.calls = []
+
+    def log(self, message, level=None):
+        self.calls.append(("log", message, level))
+
+    def warning(self, message, **kwargs):
+        self.calls.append(("warning", message))
+
+    def error(self, message, **kwargs):
+        self.calls.append(("error", message))
+
+    def debug(self, message, **kwargs):
+        self.calls.append(("debug", message))
+
+    def exception(self, message, *args, **kwargs):
+        self.calls.append(("exception", message))
+
+
 def test_bothlogger_log_warning_debug_error_exception(monkeypatch):
     from app.services.logging.both import BothLogger
 
-    calls = {"file": [], "stream": []}
-
-    class FakeFile:
-        def __init__(self, *a, **k):
-            pass
-
-        def log(self, message, level=None):
-            calls["file"].append(("log", message, level))
-
-        def warning(self, message, **kwargs):
-            calls["file"].append(("warning", message, kwargs))
-
-        def error(self, message, **kwargs):
-            calls["file"].append(("error", message, kwargs))
-
-        def debug(self, message, **kwargs):
-            calls["file"].append(("debug", message, kwargs))
-
-        def exception(self, message, *args, **kwargs):
-            calls["file"].append(("exception", message, args, kwargs))
-
-    class FakeStream:
-        def __init__(self, *a, **k):
-            pass
-
-        def log(self, message, level=None):
-            calls["stream"].append(("log", message, level))
-
-        def warning(self, message, **kwargs):
-            calls["stream"].append(("warning", message))
-
-        def error(self, message, **kwargs):
-            calls["stream"].append(("error", message))
-
-        def debug(self, message, **kwargs):
-            calls["stream"].append(("debug", message))
-
-        def exception(self, message, *args, **kwargs):
-            calls["stream"].append(("exception", message))
+    file_logger = _FakeFileLogger()
+    stream_logger = _FakeStreamLogger()
+    calls = {"file": file_logger.calls, "stream": stream_logger.calls}
 
     import app.services.logging.both as both_mod
 
-    monkeypatch.setattr(both_mod, "FileLogger", FakeFile)
-    monkeypatch.setattr(both_mod, "StreamLogger", FakeStream)
+    monkeypatch.setattr(both_mod, "FileLogger", lambda *a, **k: file_logger)
+    monkeypatch.setattr(both_mod, "StreamLogger", lambda *a, **k: stream_logger)
 
     b = BothLogger(service_name="svc", level="INFO")
 
@@ -126,7 +130,9 @@ def test_file_logger_creates_missing_log_dir(tmp_path, monkeypatch):
     assert missing_dir.exists()
 
 
-def test_file_logger_log_debug_critical_and_inject_lambda_context(tmp_path, monkeypatch):
+def test_file_logger_log_debug_critical_and_inject_lambda_context(
+    tmp_path, monkeypatch
+):
     from app.services.logging.file import FileLogger
 
     monkeypatch.setattr(
@@ -210,9 +216,7 @@ def test_json_formatter_fallback_location_relpath_error(monkeypatch):
     def raise_value_error(*args, **kwargs):
         raise ValueError("cannot relpath")
 
-    monkeypatch.setattr(
-        "app.services.logging.file.os.path.relpath", raise_value_error
-    )
+    monkeypatch.setattr("app.services.logging.file.os.path.relpath", raise_value_error)
 
     rel_path, lineno = formatter._get_fallback_location(record)
     assert rel_path == "path.py"

@@ -176,9 +176,7 @@ def test_get_caller_location_handles_relpath_error(monkeypatch):
     def raise_value_error(*args, **kwargs):
         raise ValueError("cannot relpath")
 
-    monkeypatch.setattr(
-        "app.services.logging.cloud.os.path.relpath", raise_value_error
-    )
+    monkeypatch.setattr("app.services.logging.cloud.os.path.relpath", raise_value_error)
 
     location = cw._get_caller_location()
     assert location == "some_module.py:99"

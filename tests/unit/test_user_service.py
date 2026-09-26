@@ -224,9 +224,7 @@ def test_all_filters_by_date_range(user_service):
     user_service.db.users.clear()
     user_service.db.last_id = 0
     user_service.save(
-        UserCreateRequest(
-            username="early", email="early@x.com", password="pw"
-        )
+        UserCreateRequest(username="early", email="early@x.com", password="pw")
     )
     resp_in_range = user_service.save(
         UserCreateRequest(username="mid", email="mid@x.com", password="pw")
