@@ -62,7 +62,17 @@ class CloudWatchLogger(BaseLogger):
                         log_data["environment"] = env("APP_ENVIRONMENT", "unknown")
                         log_data["version"] = env("APP_VERSION", "unknown")
 
-                        # Sanitize sensitive data in extra field
+                        # Sanitize sensitive fields. aws_lambda_powertools
+                        # flattens `extra` kwargs onto the top-level record
+                        # rather than nesting them under an "extra" key, so
+                        # top-level keys must be checked directly.
+                        for key in list(log_data.keys()):
+                            if key.lower() in self._sensitive_fields:
+                                log_data[key] = "[REDACTED]"
+
+                        # Still sanitize a nested "extra" dict if one is
+                        # present (e.g. from a differently configured
+                        # formatter upstream).
                         if "extra" in log_data and isinstance(log_data["extra"], dict):
                             for key in list(log_data["extra"].keys()):
                                 if key.lower() in self._sensitive_fields:
