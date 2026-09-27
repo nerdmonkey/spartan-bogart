@@ -7,9 +7,15 @@ All notable changes to `spartan` will be documented in this file.
 - Added `set_level` method to `StandardLoggerService` for dynamic log level changes.
 - Added `get_logger` method to `StandardLoggerService` for accessing the underlying logger instance.
 - Improved docstrings and maintainability in `StandardLoggerService`.
+- Added `docs/examples/pii-logging-demo.py` — standalone demo of PII redaction, environment
+  metadata, and log sampling, moved out of the starter handler.
 
 ### Changed
 - Refactored `StandardLoggerService` to better align with helpers.logger structure and Python logging best practices.
+- Regenerated `requirements.txt` and `requirements-dev.txt` from the poetry lockfile — fixes missing
+  `jsonpickle` and `pytest-xdist`, and a stale `moto` pin below the `pyproject.toml` constraint. (#6, #7)
+- Simplified `handlers/inference.py` to a minimal starter handler; its PII/sampling demo logging moved
+  to `docs/examples/pii-logging-demo.py`.
 
 ## [2025-06-08]
 ### Added
