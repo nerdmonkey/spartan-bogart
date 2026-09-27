@@ -1,0 +1,84 @@
+name: Release Prepare
+
+# Manually dispatched: bumps pyproject.toml's version, promotes CHANGELOG.md's
+# [Unreleased] section, and opens a PR into main instead of pushing directly.
+#
+# Why a PR: main's branch protection requires lint/pytest/bandit to have
+# already passed for a commit before it can land there (`strict` required
+# status checks). A direct push of a brand-new commit has no check results
+# yet, so GitHub rejects it outright (GH006). Routing through a PR lets CI
+# run normally; release-publish.yml tags the merge commit and creates the
+# GitHub Release once the PR lands.
+#
+# Requires a `RELEASE_PAT` repo secret (a personal access token with `repo`
+# scope from an account with push access) — NOT the default GITHUB_TOKEN.
+# GitHub does not let the default GITHUB_TOKEN's own actions (pushing a
+# branch, opening a PR) trigger other workflows, including the
+# pull_request-triggered lint/tests/security checks this PR needs to pass
+# before it can auto-merge. Using a real PAT avoids that recursion guard.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Bump pyproject.toml version
+        id: bump
+        run: |
+          poetry version ${{ inputs.bump }}
+          echo "version=$(poetry version -s)" >> "$GITHUB_OUTPUT"
+
+      - name: Promote Unreleased section in CHANGELOG.md
+        run: python scripts/bump_changelog.py "${{ steps.bump.outputs.version }}"
+
+      - name: Create release branch and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch -c "release/v${{ steps.bump.outputs.version }}"
+          git add pyproject.toml CHANGELOG.md
+          git commit -m "chore(release): v${{ steps.bump.outputs.version }}"
+          git push origin "release/v${{ steps.bump.outputs.version }}"
+
+      - name: Open release PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          gh pr create \
+            --title "chore(release): v${{ steps.bump.outputs.version }}" \
+            --body-file release_notes.md \
+            --base main \
+            --head "release/v${{ steps.bump.outputs.version }}"
+
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          gh pr merge "release/v${{ steps.bump.outputs.version }}" --squash --auto
