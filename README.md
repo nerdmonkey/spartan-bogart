@@ -24,15 +24,41 @@ Bogart is versatile and can be used to efficiently develop:
 
 ## Table of Contents
 
+- [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Project Structure](#project-structure)
 - [Testing](#testing)
 - [Changelog](#changelog)
 - [Contributing](#contributing)
 - [Security Vulnerabilities](#security-vulnerabilities)
 - [Credits](#credits)
 - [License](#license)
+
+## Features
+
+| **Feature Category**           | **Status**                   | **Details**                                                          |
+| ------------------------------ | ---------------------------- | --------------------------------------------------------------------- |
+| **AWS Lambda Handlers**        | ✅ Excellent                  | API Gateway triggers, event-driven, typed Lambda handlers             |
+| **Database & Migrations**      | ✅ Full Support               | SQLAlchemy models, Alembic migrations, seeders                        |
+| **DynamoDB Support**           | ✅ Built-in                   | DynamoDB models, repository pattern                                   |
+| **Pydantic Integration**       | ✅ Full Support               | Validation, serialization, EmailStr, type safety                      |
+| **Architecture Patterns**      | ✅ Robust                     | Repository + service pattern, clean separation of concerns            |
+| **Testing Framework**          | ✅ Fully Integrated           | pytest, moto mocking, coverage tools                                  |
+| **Code Quality Tools**         | ✅ Complete                   | Black, isort, flake8, mypy, bandit, pre-commit                        |
+| **Development Workflow**       | ✅ Streamlined                | Poetry, Tox, environment support                                      |
+| **Cloud-Native Features**      | ✅ Advanced                   | Lambda handlers, middlewares, multi-cloud hooks                       |
+| **Observability & Monitoring** | ✅ Enterprise-Grade           | Structured logging, tracing, exception handling                       |
+| **Developer Experience**       | ✅ High                       | Docker, Serverless Framework, .env support                            |
+| **Security Best Practices**    | ✅ Strong                     | Hashing, input validation, secrets handling                           |
+| **Scalability Features**       | ✅ Built-in                   | Pagination, filtering, bulk operations                                |
+| **Logging Support**            | ✅ Advanced                   | Factory logger types (file, stream, cloud, both), structured output   |
+| **Reusability**                | ✅ High                       | Abstract base classes, reusable modules                               |
+| **Modular Architecture**       | ✅ Excellent                  | Factory design, reusable services/utilities                           |
+| **Configuration Management**   | ✅ Centralized                | Pydantic + .env + environment-detection                               |
+| **Cross-Platform Support**     | ✅ Multi-Cloud Ready          | AWS, GCP, Azure, local support via abstraction layers                 |
+| **Code Consistency**           | ✅ Consistent with minor gaps | Naming conventions, model structures, unified patterns                |
 
 ## Requirements
 
@@ -49,67 +75,129 @@ git clone https://github.com/nerdmonkey/spartan-bogart.git
 cd spartan-bogart
 ```
 
+Set up your environment:
+
+<details>
+<summary><strong>▶️ For Linux / macOS</strong></summary>
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+</details>
+
+<details>
+<summary><strong>🪟 For Windows PowerShell</strong></summary>
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+</details>
+
+<details>
+<summary><strong>🪟 For Windows CMD / DOS</strong></summary>
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
+```
+
+</details>
+
+Copy and configure environment variables:
+
+```bash
+cp .env.example .env  # Linux/macOS
+```
+
+```powershell
+copy .env.example .env  # PowerShell
+```
+
+```cmd
+copy .env.example .env  # CMD
+```
+
 ## Usage
 
-1. Create a virtual environment and install the required packages:
+### Run Database Migrations
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
+```bash
+spartan migrate init -d sqlite
+spartan migrate upgrade
+```
 
-2. Copy `.env.example` to `.env`:
+### Seed Dummy Data
 
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+spartan db seed
+```
 
-3. Configure the migration:
+### Run the App
 
-   ```bash
-   spartan migrate init -d sqlite
-   ```
+```bash
+spartan serve
+```
 
-4. Create all the tables:
+## Project Structure
 
-   ```bash
-   spartan migrate upgrade
-   ```
-
-5. Insert dummy data:
-
-   ```bash
-   spartan db seed
-   ```
-
-6. Run the app:
-
-   ```bash
-   spartan serve
-   ```
+```
+spartan-bogart/
+├── app/
+│   ├── exceptions/        # Custom exception types
+│   ├── helpers/           # Utility helpers (logger, environment, context, tracer)
+│   ├── middlewares/       # Request/response middlewares
+│   ├── models/
+│   │   ├── db/            # SQLAlchemy models
+│   │   └── ddb/           # DynamoDB models
+│   ├── repositories/      # Data access layer
+│   ├── requests/          # Request/input models
+│   ├── responses/         # Response/output models
+│   └── services/
+│       ├── logging/       # Logger implementations (file, stream, cloud, both)
+│       └── tracing/       # Distributed tracing implementations
+├── config/                # Configuration files
+├── database/
+│   ├── migrations/        # Alembic migrations
+│   └── seeders/           # Database seeders
+├── docs/                  # Documentation (banner, CONTRIBUTING, CODE_OF_CONDUCT)
+├── handlers/              # Lambda entrypoint handlers
+├── scripts/               # Release tooling (CHANGELOG promotion, etc.)
+├── tests/                 # Test suites
+│   ├── unit/              # Unit tests
+│   ├── integration/       # Integration tests
+│   └── e2e/               # End-to-end tests
+├── requirements.txt       # Python dependencies
+└── pyproject.toml         # Poetry configuration
+```
 
 ## Testing
 
-1. Install the dev dependencies (`requirements-dev.txt` currently omits `pytest-xdist`, which `pytest.ini` requires via `-n auto`, and `jsonpickle`, which `app/services/app.py` imports — install both manually on a fresh `.venv`):
+Install the dev dependencies (`requirements-dev.txt` currently omits `pytest-xdist`, which `pytest.ini` requires via `-n auto`, and `jsonpickle`, which `app/services/app.py` imports — install both manually on a fresh `.venv`):
 
-   ```bash
-   source .venv/bin/activate
-   pip install -r requirements-dev.txt
-   pip install pytest-xdist jsonpickle
-   ```
+```bash
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+pip install pytest-xdist jsonpickle
+```
 
-2. Run the unit test suite with coverage:
+Run the unit test suite with coverage:
 
-   ```bash
-   python -m pytest tests/unit -q --cov=app --cov=handlers --cov=config --cov-report=term-missing
-   ```
+```bash
+python -m pytest tests/unit -q --cov=app --cov=handlers --cov=config --cov-report=term-missing
+```
 
-   Alternatively, via tox (installs dependencies through Poetry):
+Alternatively, via tox (installs dependencies through Poetry):
 
-   ```bash
-   tox -e coverage
-   ```
+```bash
+tox -e coverage
+```
 
 ## Changelog
 
