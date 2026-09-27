@@ -3,6 +3,12 @@
 All notable changes to `spartan` will be documented in this file.
 
 ## [Unreleased]
+
+### Added
+- Nothing yet.
+
+## [0.2.0] - 2026-09-27
+
 ### Added
 - Added `set_level` method to `StandardLoggerService` for dynamic log level changes.
 - Added `get_logger` method to `StandardLoggerService` for accessing the underlying logger instance.
