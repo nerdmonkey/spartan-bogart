@@ -1,0 +1,49 @@
+name: Release Publish
+
+# Runs when a release-prepare PR (branch "release/vX.Y.Z") merges into main.
+# Tags the resulting merge commit and publishes the GitHub Release. Split out
+# from release-prepare.yml because the tag must point at the commit that
+# actually landed on main (the squash-merge commit), not the PR branch's own
+# commit.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Resolve version from branch name
+        id: version
+        run: |
+          ref="${{ github.event.pull_request.head.ref }}"
+          echo "version=${ref#release/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Tag merge commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version.outputs.version }}" "${{ github.event.pull_request.merge_commit_sha }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTES: ${{ github.event.pull_request.body }}
+        run: |
+          echo "$NOTES" > release_notes.md
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "v${{ steps.version.outputs.version }}" \
+            --notes-file release_notes.md \
+            --target "${{ github.event.pull_request.merge_commit_sha }}"
